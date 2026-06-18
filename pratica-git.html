@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🥋 Git — Sessione di Pratica</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #6e7681;
+    --teal: #39d353;
+    --teal-dim: #1a4d2e;
+    --purple: #a371f7;
+    --purple-dim: #2d1f5e;
+    --amber: #e3b341;
+    --amber-dim: #3d2e00;
+    --coral: #f78166;
+    --coral-dim: #4a1e1a;
+    --blue: #58a6ff;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    --sans: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.7; }
+
+  .shell { display: flex; min-height: 100vh; }
+  .sidebar { width: 280px; min-width: 280px; background: var(--bg2); border-right: 1px solid var(--border); padding: 24px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .main { flex: 1; padding: 48px 56px; max-width: 860px; }
+
+  .sidebar-title { font-size: 11px; font-weight: 600; letter-spacing: .1em; color: var(--text3); text-transform: uppercase; padding: 0 20px 12px; }
+  .mod-group { border-bottom: 1px solid var(--border); }
+  .mod-btn { display: flex; align-items: flex-start; gap: 10px; width: 100%; background: none; border: none; color: var(--text2); cursor: pointer; padding: 10px 14px 10px 20px; text-align: left; transition: background .15s, color .15s; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+  .mod-btn:hover { background: var(--bg3); color: var(--text); }
+  .mod-btn.active { background: var(--bg3); color: var(--text); }
+  .mod-btn-text { flex: 1; min-width: 0; }
+  .mod-chevron { font-size: 10px; color: var(--text3); margin-top: 4px; flex-shrink: 0; transition: transform .2s; line-height: 1; }
+  .mod-group.open .mod-chevron { transform: rotate(90deg); }
+  .mod-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .dot-teal { background: var(--teal); }
+  .dot-purple { background: var(--purple); }
+  .dot-amber { background: var(--amber); }
+  .dot-coral { background: var(--coral); }
+  .mod-label { font-size: 10px; display: block; margin-top: 2px; }
+  .mod-sections { display: none; padding: 2px 0 8px 0; background: var(--bg); }
+  .mod-group.open .mod-sections { display: block; }
+  .sec-link { display: block; padding: 5px 16px 5px 40px; font-size: 11.5px; color: var(--text3); text-decoration: none; line-height: 1.4; transition: color .12s, background .12s; white-space: normal; }
+  .sec-link:hover { color: var(--text); background: var(--bg3); }
+
+  .mod-page { display: none; }
+  .mod-page.visible { display: block; }
+
+  .page-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; }
+  .eyebrow-teal { color: var(--teal); }
+  .eyebrow-purple { color: var(--purple); }
+  .eyebrow-amber { color: var(--amber); }
+  .eyebrow-coral { color: var(--coral); }
+  .eyebrow-blue { color: var(--blue); }
+
+  h1 { font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 8px; }
+  .page-sub { color: var(--text2); font-size: 15px; margin-bottom: 36px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  h2 { font-size: 17px; font-weight: 600; margin: 36px 0 12px; color: var(--text); }
+  h3 { font-size: 14px; font-weight: 600; margin: 24px 0 8px; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; }
+  p { margin-bottom: 14px; color: var(--text2); }
+  p strong { color: var(--text); font-weight: 600; }
+  ul { margin: 0 0 14px 20px; }
+  ul li { color: var(--text2); margin-bottom: 4px; }
+  ul li strong { color: var(--text); }
+
+  code { font-family: var(--mono); font-size: 13px; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; color: var(--teal); }
+  pre { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 16px 0; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; color: var(--text); font-size: 13px; line-height: 1.6; }
+
+  /* LOG BLOCK — riproduce esattamente l'output di git log */
+  .git-log { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 16px 0; overflow-x: auto; font-family: var(--mono); font-size: 12.5px; line-height: 1.75; white-space: pre; }
+  .git-log .h { color: var(--amber); }       /* hash */
+  .git-log .r { color: var(--teal); }        /* ref locale HEAD/dev */
+  .git-log .ro { color: var(--blue); }       /* ref origin */
+  .git-log .rf { color: var(--purple); }     /* ref feature branch */
+  .git-log .g { color: var(--text3); }       /* connettori grafo |\ |/ * | */
+  .git-log .m { color: var(--text2); font-style: italic; } /* merge commit msg */
+  .log-annotation { background: var(--teal-dim); border: 1px solid var(--teal); border-radius: 6px; padding: 10px 14px; margin: 8px 0 16px; font-size: 13px; color: var(--text); }
+  .log-annotation strong { color: var(--teal); }
+
+  .anatomy { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 13px; }
+  .anatomy thead tr { background: var(--bg3); }
+  .anatomy th { padding: 8px 14px; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text3); border-bottom: 1px solid var(--border); }
+  .anatomy td { padding: 8px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .anatomy tr:last-child td { border-bottom: none; }
+  .anatomy .part { font-family: var(--mono); font-size: 12px; color: var(--teal); white-space: nowrap; }
+  .anatomy .desc { color: var(--text2); }
+
+  .callout { border-left: 3px solid; border-radius: 0 6px 6px 0; padding: 12px 16px; margin: 20px 0; font-size: 14px; }
+  .callout-tip { border-color: var(--teal); background: var(--teal-dim); }
+  .callout-warn { border-color: var(--amber); background: var(--amber-dim); }
+  .callout-info { border-color: var(--blue); background: #0d2044; }
+  .callout p { margin: 0; color: var(--text); }
+  .callout-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+  .callout-tip .callout-label { color: var(--teal); }
+  .callout-warn .callout-label { color: var(--amber); }
+  .callout-info .callout-label { color: var(--blue); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+
+  .nav-row { display: flex; gap: 12px; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); }
+  .nav-btn { display: flex; align-items: center; gap: 8px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; cursor: pointer; font-family: var(--sans); font-size: 13px; color: var(--text2); transition: all .15s; }
+  .nav-btn:hover { border-color: var(--blue); color: var(--text); }
+  .nav-btn.next { margin-left: auto; background: var(--bg3); }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+<!-- Made by Marco N. -->
+</head>
+<body>
+<div class="shell">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-title">🥋 Pratica Git</div>
+
+  <div class="mod-group" id="group-0">
+    <button class="mod-btn active" onclick="showMod(0)">
+      <span class="mod-dot dot-teal"></span>
+      <span class="mod-btn-text"><strong>Fase 1</strong><span class="mod-label">Branching &amp; Merge</span></span>
+      <span class="mod-chevron">▸</span>
+    </button>
+    <div class="mod-sections">
+      <a class="sec-link" href="#" onclick="showAndScroll(0,'f1-ff');return false;">1.1 — Fast-forward merge</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(0,'f1-noff');return false;">1.2 — Merge con --no-ff</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(0,'f1-log');return false;">1.3 — Leggere il log</a>
+    </div>
+  </div>
+
+  <div class="mod-group" id="group-1">
+    <button class="mod-btn" onclick="showMod(1)">
+      <span class="mod-dot dot-purple"></span>
+      <span class="mod-btn-text"><strong>Fase 2</strong><span class="mod-label">Conflitti intenzionali</span></span>
+      <span class="mod-chevron">▸</span>
+    </button>
+    <div class="mod-sections">
+      <a class="sec-link" href="#" onclick="showAndScroll(1,'f2-manuale');return false;">2.1 — Conflitto manuale</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(1,'f2-ours');return false;">2.2 — -X ours</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(1,'f2-theirs');return false;">2.3 — -X theirs</a>
+    </div>
+  </div>
+
+  <div class="mod-group" id="group-2">
+    <button class="mod-btn" onclick="showMod(2)">
+      <span class="mod-dot dot-amber"></span>
+      <span class="mod-btn-text"><strong>Fase 3</strong><span class="mod-label">Remote &amp; PR Azure DevOps</span></span>
+      <span class="mod-chevron">▸</span>
+    </button>
+    <div class="mod-sections">
+      <a class="sec-link" href="#" onclick="showAndScroll(2,'f3-push');return false;">3.1 — Push branch e apertura PR</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(2,'f3-fetch');return false;">3.2 — Fetch e allineamento</a>
+    </div>
+  </div>
+
+  <div class="mod-group" id="group-3">
+    <button class="mod-btn" onclick="showMod(3)">
+      <span class="mod-dot dot-coral"></span>
+      <span class="mod-btn-text"><strong>Fase 4</strong><span class="mod-label">Rebase</span></span>
+      <span class="mod-chevron">▸</span>
+    </button>
+    <div class="mod-sections">
+      <a class="sec-link" href="#" onclick="showAndScroll(3,'f4-base');return false;">4.1 — Rebase base</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(3,'f4-interactive');return false;">4.2 — Interactive rebase (squash)</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(3,'f4-force');return false;">4.3 — --force-with-lease</a>
+    </div>
+  </div>
+
+  <div class="mod-group" id="group-4">
+    <button class="mod-btn" onclick="showMod(4)">
+      <span class="mod-dot dot-teal"></span>
+      <span class="mod-btn-text"><strong>Fase 5</strong><span class="mod-label">Reset, Revert, Restore</span></span>
+      <span class="mod-chevron">▸</span>
+    </button>
+    <div class="mod-sections">
+      <a class="sec-link" href="#" onclick="showAndScroll(4,'f5-revert');return false;">5.1 — git revert</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(4,'f5-reset');return false;">5.2 — git reset (soft/mixed/hard)</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(4,'f5-reflog');return false;">5.3 — git reflog</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(4,'f5-restore');return false;">5.4 — git restore</a>
+    </div>
+  </div>
+
+  <div class="mod-group" id="group-5">
+    <button class="mod-btn" onclick="showMod(5)">
+      <span class="mod-dot dot-purple"></span>
+      <span class="mod-btn-text"><strong>Fase 6</strong><span class="mod-label">Cherry-pick 🍒</span></span>
+      <span class="mod-chevron">▸</span>
+    </button>
+    <div class="mod-sections">
+      <a class="sec-link" href="#" onclick="showAndScroll(5,'f6-base');return false;">6.1 — Cherry-pick base</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(5,'f6-conflict');return false;">6.2 — Cherry-pick con conflitto</a>
+    </div>
+  </div>
+
+  <div class="mod-group" id="group-6">
+    <button class="mod-btn" onclick="showMod(6)">
+      <span class="mod-dot dot-amber"></span>
+      <span class="mod-btn-text"><strong>Riepilogo</strong><span class="mod-label">Comandi &amp; tabelle</span></span>
+      <span class="mod-chevron">▸</span>
+    </button>
+    <div class="mod-sections">
+      <a class="sec-link" href="#" onclick="showAndScroll(6,'riepilogo-reset');return false;">Tabella reset</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(6,'riepilogo-comandi');return false;">Tutti i comandi</a>
+    </div>
+  </div>
+
+</nav>
+
+<main class="main">
+
+<!-- ========== FASE 1 ========== -->
+<div class="mod-page visible" id="mod-0">
+  <div class="page-eyebrow eyebrow-teal">Fase 1 — Modulo 2 del tutorial</div>
+  <h1>Branching &amp; Merge</h1>
+  <p class="page-sub">Il punto di partenza. Fast-forward vs merge esplicito, e come leggere il grafo risultante.</p>
+
+  <h2 id="f1-ff">1.1 — Fast-forward merge</h2>
+  <p>Crea <code>feature/login</code> da <code>dev</code>, fai 2 commit, torna su <code>dev</code> e merga <strong>senza</strong> <code>--no-ff</code>.</p>
+
+  <pre><code>git switch dev
+git switch -c feature/login
+# modifica o crea un file, poi:
+git add .
+git commit -m "feat: aggiunta pagina login"
+# modifica ancora, poi:
+git add .
+git commit -m "feat: aggiunta validazione form login"
+git switch dev
+git merge feature/login
+git log --oneline --graph --all</code></pre>
+
+  <h3>Log reale ottenuto</h3>
+  <div class="git-log"><span class="g">* </span><span class="h">1db4b2a</span> <span class="r">(HEAD -&gt; dev, feature/login)</span> feat: aggiunta validazione pagina login
+<span class="g">* </span><span class="h">a762a42</span> feat: aggiunta pagina login
+<span class="g">*   </span><span class="h">ed2b466</span> <span class="m">Merged PR 1: feat: creato terzo commento</span>
+<span class="g">|\  </span>
+<span class="g">| * </span><span class="h">ef25921</span> <span class="rf">(origin/feature/SecondoBranchProva, feature/SecondoBranchProva)</span> feat: creato terzo commento
+<span class="g">|/  </span>
+<span class="g">* </span><span class="h">5f3a7b3</span> <span class="ro">(origin/master, origin/HEAD, master)</span> feat: primo commit — struttura iniziale progetto</div>
+  <div class="log-annotation">
+    <strong>Riga per riga:</strong><br>
+    <code>* 1db4b2a (HEAD -&gt; dev, feature/login)</code> — il commit più recente. <code>HEAD -&gt; dev</code> = sei su dev. <code>feature/login</code> = il branch punta allo <strong>stesso</strong> commit. Due puntatori, un solo commit. Questa è la fast-forward: Git ha solo spostato il puntatore di dev in avanti, senza creare un commit di merge.<br><br>
+    <code>* a762a42</code> — il commit precedente di feature/login. Nessun ref accanto = commit intermedio, non punta nessun branch.<br><br>
+    <code>*&nbsp;&nbsp; ed2b466</code> — merge commit preesistente (tre spazi = merge). Da qui in giù è la storia che esisteva prima di questa esercitazione.<br><br>
+    <code>|\</code> e <code>|/</code> — biforcazione e ricongiuzione di un branch precedente (feature/SecondoBranchProva), già mergato prima.<br><br>
+    <code>* 5f3a7b3 (origin/master, origin/HEAD, master)</code> — il primo commit del repo. <code>origin/HEAD</code> = il branch di default sul remoto. <code>master</code> = branch principale locale mai aggiornato da allora.
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Concetto chiave</div>
+    <p>La fast-forward è "invisibile" nella storia: non lascia traccia che quei commit venissero da un branch separato. Per questo nel team si usa <code>--no-ff</code>.</p>
+  </div>
+
+  <hr class="divider" id="f1-noff">
+  <h2>1.2 — Merge con --no-ff</h2>
+  <p>Stessa cosa ma forzando un commit di merge esplicito.</p>
+
+  <pre><code>git switch -c feature/dashboard
+# crea dashboard.txt, poi:
+git add .
+git commit -m "feat: aggiunta pagina dashboard"
+git add .
+git commit -m "feat: aggiunta widget statistiche"
+git switch dev
+git merge --no-ff feature/dashboard -m "merge: feature/dashboard in dev"
+git log --oneline --graph --all</code></pre>
+
+  <h3>Log reale ottenuto</h3>
+  <div class="git-log"><span class="g">*   </span><span class="h">21f79e7</span> <span class="r">(HEAD -&gt; dev)</span> <span class="m">merge: feature/dashboard in dev</span>
+<span class="g">|\  </span>
+<span class="g">| * </span><span class="h">002101c</span> <span class="rf">(feature/dashboard)</span> feat: aggiunta widget statistiche
+<span class="g">| * </span><span class="h">6618858</span> feat: aggiunta pagina dashboard
+<span class="g">|/  </span>
+<span class="g">* </span><span class="h">1db4b2a</span> <span class="rf">(feature/login)</span> feat: aggiunta validazione pagina login
+<span class="g">* </span><span class="h">a762a42</span> feat: aggiunta pagina login</div>
+  <div class="log-annotation">
+    <strong>Riga per riga:</strong><br>
+    <code>*&nbsp;&nbsp; 21f79e7 (HEAD -&gt; dev)</code> — il commit di merge. <code>*&nbsp;&nbsp;</code> con tre spazi indica un merge commit (ha due genitori). <code>HEAD -&gt; dev</code> = sei qui ora.<br><br>
+    <code>|\</code> — i due branch si <strong>riuniscono</strong> qui. Da questo punto in giù la storia si divide in due binari paralleli.<br><br>
+    <code>| * 002101c (feature/dashboard)</code> — commit sul binario di destra, cioè feature/dashboard. Il <code>| *</code> significa "commit su un branch parallelo".<br><br>
+    <code>| * 6618858</code> — secondo commit sempre su feature/dashboard, ancora sul binario di destra.<br><br>
+    <code>|/</code> — i due binari si <strong>biforcano</strong> (verso il basso = verso il passato). È qui che è stato creato feature/dashboard.<br><br>
+    <code>* 1db4b2a (feature/login)</code> — il punto di partenza comune. Da qui i due branch si sono separati. Nota: feature/login punta allo stesso commit di dev perché era una fast-forward.
+  </div>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">Tip</div>
+    <p>Per vedere solo i commit esclusivi di un branch rispetto a un altro (utile <strong>prima</strong> del merge): <code>git log --oneline dev..feature/dashboard</code>. Dopo il merge non mostra nulla — quei commit fanno già parte di dev.</p>
+  </div>
+
+  <hr class="divider" id="f1-log">
+  <h2>1.3 — Come leggere il grafo</h2>
+  <p>Il grafo si legge <strong>dall'alto verso il basso</strong> — in cima c'è il presente, in fondo il passato.</p>
+
+  <table class="anatomy">
+    <thead><tr><th>Simbolo</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">*</td><td class="desc">Un commit</td></tr>
+      <tr><td class="part">|\</td><td class="desc">I branch si riuniscono (commit di merge)</td></tr>
+      <tr><td class="part">|/</td><td class="desc">Il branch si biforca (punto di creazione)</td></tr>
+      <tr><td class="part">| *</td><td class="desc">Un commit su un branch parallelo</td></tr>
+      <tr><td class="part">HEAD -&gt; dev</td><td class="desc">Dove sei posizionato ora (dev locale)</td></tr>
+      <tr><td class="part">origin/dev</td><td class="desc">Dove è il remoto — se diverso da dev, sono divergiti</td></tr>
+    </tbody>
+  </table>
+
+  <div class="nav-row">
+    <button class="nav-btn next" onclick="showMod(1)">Fase 2 — Conflitti →</button>
+  </div>
+</div>
+
+<!-- ========== FASE 2 ========== -->
+<div class="mod-page" id="mod-1">
+  <div class="page-eyebrow eyebrow-purple">Fase 2 — Modulo 5 del tutorial</div>
+  <h1>Conflitti intenzionali</h1>
+  <p class="page-sub">Il modo migliore per imparare a gestire i conflitti è crearli apposta.</p>
+
+  <h2 id="f2-manuale">2.1 — Conflitto manuale</h2>
+  <p>Modifica la <strong>stessa riga</strong> dello stesso file su due branch diversi, poi tenta il merge.</p>
+
+  <pre><code>git switch dev
+git switch -c feature/conflitto-test
+# Apri dashboard.txt, modifica la prima riga:
+# "Dashboard v2 — modificato da feature/conflitto-test"
+git add .
+git commit -m "feat: modifica dashboard da feature/conflitto-test"
+git switch dev
+# Apri dashboard.txt, modifica la STESSA riga:
+# "Dashboard v2 — modificato da dev"
+git add .
+git commit -m "feat: modifica dashboard da dev"
+git merge --no-ff feature/conflitto-test</code></pre>
+
+  <h3>Output del merge in conflitto</h3>
+  <pre><code>Auto-merging api/src/main/java/.../dashboard.txt
+CONFLICT (content): Merge conflict in dashboard.txt
+Automatic merge failed; fix conflicts and then commit the result.</code></pre>
+
+  <h3>Cosa trovi nel file</h3>
+  <pre><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+Dashboard v2 — modificato da dev
+=======
+Dashboard v2 — modificato da feature/conflitto-test
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/conflitto-test</code></pre>
+
+  <p>Modifica il file a mano, rimuovi tutti i marcatori, salva, poi:</p>
+  <pre><code>git add .
+git commit -m "merge: risolto conflitto dashboard"
+git log --oneline --graph --all</code></pre>
+
+  <h3>Log reale ottenuto</h3>
+  <div class="git-log"><span class="g">*   </span><span class="h">f19fffe</span> <span class="r">(HEAD -&gt; dev)</span> <span class="m">merge: risolto conflitto dashboard</span>
+<span class="g">|\  </span>
+<span class="g">| * </span><span class="h">2690e79</span> <span class="rf">(feature/conflitto-test)</span> feat: modifica dashboard da feature/conflitto-test
+<span class="g">* | </span><span class="h">8e721b4</span> feat: modifica dashboard da dev
+<span class="g">|/  </span>
+<span class="g">*   </span><span class="h">21f79e7</span> <span class="m">merge: feature/dashboard in dev</span>
+<span class="g">|\  </span>
+<span class="g">| * </span><span class="h">002101c</span> <span class="rf">(feature/dashboard)</span> feat: aggiunta widget statistiche
+<span class="g">| * </span><span class="h">6618858</span> feat: aggiunta pagina dashboard
+<span class="g">|/  </span>
+<span class="g">* </span><span class="h">1db4b2a</span> <span class="rf">(feature/login)</span> feat: aggiunta validazione pagina login</div>
+  <div class="log-annotation">
+    <strong>Riga per riga:</strong><br>
+    <code>*&nbsp;&nbsp; f19fffe (HEAD -&gt; dev)</code> — il commit di merge che ha risolto il conflitto. I tre spazi dopo <code>*</code> indicano merge commit. <code>HEAD -&gt; dev</code> = sei qui ora.<br><br>
+    <code>|\</code> — da qui la storia si divide in <strong>due binari paralleli</strong>. Leggi: i due branch si riuniscono in questo merge.<br><br>
+    <code>| * 2690e79 (feature/conflitto-test)</code> — commit sul binario di <strong>destra</strong> (feature branch). È la modifica che aveva fatto il feature branch sulla stessa riga.<br><br>
+    <code>* | 8e721b4</code> — commit sul binario di <strong>sinistra</strong> (dev). È la modifica fatta direttamente su dev. Nota: <code>* |</code> invece di <code>| *</code> — siamo sul ramo principale.<br><br>
+    <code>|/</code> — i due binari si biforcano verso il passato. È qui che è stato creato feature/conflitto-test da dev.<br><br>
+    Questo schema a <strong>diamante</strong> — <code>|\</code> poi <code>* |</code>/<code>| *</code> poi <code>|/</code> — è la firma visiva di qualsiasi merge con conflitto (o senza). Più lo vedi, più diventa automatico riconoscerlo.
+  </div>
+
+  <hr class="divider" id="f2-ours">
+  <h2>2.2 — Risoluzione automatica con -X ours</h2>
+  <p>Crea un conflitto identico ma usa <code>-X ours</code> per risolverlo senza toccare i file.</p>
+
+  <pre><code>git switch -c feature/conflitto-ours
+# Modifica dashboard.txt: "Dashboard v3 — versione dal feature branch"
+git add .
+git commit -m "feat: dashboard v3 da feature branch"
+git switch dev
+# Modifica la STESSA riga: "Dashboard v3 — versione da dev"
+git add .
+git commit -m "feat: dashboard v3 da dev"
+git merge --no-ff feature/conflitto-ours -X ours -m "merge: conflitto risolto con ours"</code></pre>
+
+  <p>Apri <code>dashboard.txt</code> — contiene: <strong>"Dashboard v3 — versione da dev"</strong>. Ha vinto il branch corrente.</p>
+
+  <hr class="divider" id="f2-theirs">
+  <h2>2.3 — Risoluzione automatica con -X theirs</h2>
+
+  <pre><code>git switch -c feature/conflitto-theirs
+# Modifica dashboard.txt: "Dashboard v4 — versione dal feature branch"
+git add .
+git commit -m "feat: dashboard v4 da feature branch"
+git switch dev
+# Modifica la STESSA riga: "Dashboard v4 — versione da dev"
+git add .
+git commit -m "feat: dashboard v4 da dev"
+git merge --no-ff feature/conflitto-theirs -X theirs -m "merge: conflitto risolto con theirs"</code></pre>
+
+  <p>Apri <code>dashboard.txt</code> — contiene: <strong>"Dashboard v4 — versione dal feature branch"</strong>. Ha vinto il branch mergato.</p>
+
+  <table class="anatomy">
+    <thead><tr><th>Flag</th><th>Chi vince</th></tr></thead>
+    <tbody>
+      <tr><td class="part">-X ours</td><td class="desc">Il branch su cui sei (quello che riceve il merge)</td></tr>
+      <tr><td class="part">-X theirs</td><td class="desc">Il branch che stai mergando</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Attenzione</div>
+    <p>Se usi <code>rebase</code> invece di <code>merge</code>, <code>ours</code> e <code>theirs</code> si <strong>invertono</strong>. Questo è approfondito nel Modulo 6 del tutorial.</p>
+  </div>
+
+  <div class="nav-row">
+    <button class="nav-btn" onclick="showMod(0)">← Fase 1</button>
+    <button class="nav-btn next" onclick="showMod(2)">Fase 3 — Remote &amp; PR →</button>
+  </div>
+</div>
+
+<!-- ========== FASE 3 ========== -->
+<div class="mod-page" id="mod-2">
+  <div class="page-eyebrow eyebrow-amber">Fase 3 — Moduli 3 &amp; 4 del tutorial</div>
+  <h1>Remote &amp; PR su Azure DevOps</h1>
+  <p class="page-sub">Simula il workflow reale da team: pusha un feature branch, apri una PR, completa il merge e riallinea il locale.</p>
+
+  <h2 id="f3-push">3.1 — Push branch e apertura PR</h2>
+
+  <pre><code>git switch dev
+git switch -c feature/navbar
+# crea/modifica un file, poi:
+git add .
+git commit -m "feat: aggiunta navbar"
+git add .
+git commit -m "feat: aggiunta link navbar"
+git push origin feature/navbar</code></pre>
+
+  <p>Su Azure DevOps apparirà il banner <em>"You updated feature/navbar — Create a pull request"</em>. Clicca, imposta <strong>dev</strong> come branch di destinazione (non master!), e clicca <strong>Create</strong>. Poi clicca <strong>Complete</strong> per finalizzare il merge.</p>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Attenzione</div>
+    <p>La PR non fa il merge da sola: devi cliccare <strong>Complete</strong> per eseguirlo. Azure DevOps usa sempre <code>--no-ff</code> di default.</p>
+  </div>
+
+  <hr class="divider" id="f3-fetch">
+  <h2>3.2 — Fetch e allineamento</h2>
+  <p>Dopo aver completato la PR su Azure DevOps, il merge è avvenuto sul remoto ma il tuo locale non lo sa ancora.</p>
+
+  <pre><code>git fetch origin
+git log --oneline --graph --all</code></pre>
+
+  <h3>Log dopo fetch — prima del pull</h3>
+  <div class="git-log"><span class="g">*   </span><span class="h">9697c2c</span> <span class="ro">(origin/dev)</span> <span class="m">Merged PR 2: feat: aggiunta navbar</span>
+<span class="g">|\  </span>
+<span class="g">| * </span><span class="h">d1094a0</span> <span class="rf">(HEAD -&gt; feature/navbar, origin/feature/navbar)</span> feat. aggiunta link navbar
+<span class="g">| * </span><span class="h">3a7a3e1</span> feat. aggiunta navbar
+<span class="g">|/  </span>
+<span class="g">*   </span><span class="h">31b5e56</span> <span class="r">(dev)</span> <span class="m">merge: conflitto risolto con theirs</span>
+<span class="g">|\  </span>
+<span class="g">| * </span><span class="h">829d4f6</span> <span class="rf">(feature/conflitto-theirs)</span> feat: dashboard v4 da feature branch
+<span class="g">* | </span><span class="h">6eb5767</span> feat dashboard v4 da dev
+<span class="g">|/  </span>
+<span class="g">*   </span><span class="h">c62c7ce</span> <span class="m">merge: conflitto risolto con ours</span></div>
+  <div class="log-annotation">
+    <strong>Riga per riga:</strong><br>
+    <code>*&nbsp;&nbsp; 9697c2c (origin/dev)</code> — il commit di merge creato dalla PR su Azure DevOps. Nota: <strong>solo</strong> <code>origin/dev</code>, non <code>dev</code>. Il remoto è avanzato ma il tuo locale non sa ancora nulla.<br><br>
+    <code>|\</code> — il merge della PR ha unito feature/navbar in dev sul remoto.<br><br>
+    <code>| * d1094a0 (HEAD -&gt; feature/navbar, origin/feature/navbar)</code> — sei ancora posizionato su feature/navbar (<code>HEAD -&gt;</code>). Il branch esiste sia in locale che sul remoto, entrambi allo stesso commit.<br><br>
+    <code>| * 3a7a3e1</code> — il primo commit di feature/navbar.<br><br>
+    <code>|/</code> — il punto di biforcazione di feature/navbar da dev.<br><br>
+    <code>*&nbsp;&nbsp; 31b5e56 (dev)</code> — qui sta <code>dev</code> <strong>locale</strong>. È rimasto indietro rispetto a <code>origin/dev</code> che è già a <code>9697c2c</code>. Questo è il segnale che devi fare <code>git pull</code>.
+  </div>
+
+  <pre><code>git switch dev
+git pull origin dev
+git log --oneline --graph --all</code></pre>
+
+  <h3>Log dopo il pull — allineato</h3>
+  <div class="git-log"><span class="g">*   </span><span class="h">9697c2c</span> <span class="r">(HEAD -&gt; dev, origin/dev)</span> <span class="m">Merged PR 2: feat: aggiunta navbar</span>
+<span class="g">|\  </span>
+<span class="g">| * </span><span class="h">d1094a0</span> <span class="ro">(origin/feature/navbar, feature/navbar)</span> feat. aggiunta link navbar
+<span class="g">| * </span><span class="h">3a7a3e1</span> feat. aggiunta navbar
+<span class="g">|/  </span>
+<span class="g">*   </span><span class="h">31b5e56</span> <span class="m">merge: conflitto risolto con theirs</span></div>
+  <div class="log-annotation">
+    <strong>Riga per riga:</strong><br>
+    <code>*&nbsp;&nbsp; 9697c2c (HEAD -&gt; dev, origin/dev)</code> — ora sia <code>dev</code> locale che <code>origin/dev</code> puntano allo stesso commit. <code>HEAD -&gt; dev</code> = sei su dev. Locale e remoto <strong>allineati</strong>.<br><br>
+    Confronta con il log precedente: prima c'era solo <code>(origin/dev)</code>, ora c'è <code>(HEAD -&gt; dev, origin/dev)</code>. Il pull ha spostato il puntatore locale in avanti.<br><br>
+    <code>| * d1094a0 (origin/feature/navbar, feature/navbar)</code> — feature/navbar non ha <code>HEAD -&gt;</code> perché sei passato su dev. Il branch esiste ancora ma non sei posizionato lì.
+  </div>
+
+  <div class="nav-row">
+    <button class="nav-btn" onclick="showMod(1)">← Fase 2</button>
+    <button class="nav-btn next" onclick="showMod(3)">Fase 4 — Rebase →</button>
+  </div>
+</div>
+
+<!-- ========== FASE 4 ========== -->
+<div class="mod-page" id="mod-3">
+  <div class="page-eyebrow eyebrow-coral">Fase 4 — Modulo 6 del tutorial</div>
+  <h1>Rebase</h1>
+  <p class="page-sub">Linearizzare la storia e pulire i commit prima di una PR.</p>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Regola d'oro</div>
+    <p>Mai fare rebase su branch condivisi (<code>dev</code>, <code>master</code>). Solo su branch tuoi, non ancora pushati o su cui lavori solo tu.</p>
+  </div>
+
+  <h2 id="f4-base">4.1 — Rebase base</h2>
+  <p>Simula il caso reale: mentre lavori sul tuo branch, qualcuno ha pushato su <code>dev</code>.</p>
+
+  <pre><code>git switch dev
+git switch -c feature/rebase-test
+# modifica un file, poi:
+git add .
+git commit -m "feat: aggiunta file rebase 1"
+git add .
+git commit -m "feat: aggiunta file rebase 2"
+git switch dev
+# modifica un file diverso, poi:
+git add .
+git commit -m "feat: commit su dev nel frattempo"</code></pre>
+
+  <h3>Log prima del rebase — branch divergiti</h3>
+  <div class="git-log"><span class="g">* </span><span class="h">b3aa22e</span> <span class="r">(HEAD -&gt; dev)</span> feat: commit su dev nel frattempo
+<span class="g">| * </span><span class="h">bcf2c4e</span> <span class="rf">(feature/rebase-test)</span> feat: aggiunta file rebase 2
+<span class="g">| * </span><span class="h">8fbaef0</span> feat: aggiunta file rebase 1
+<span class="g">|/  </span>
+<span class="g">*   </span><span class="h">9697c2c</span> <span class="ro">(origin/dev)</span> <span class="m">Merged PR 2: feat: aggiunta navbar</span></div>
+  <div class="log-annotation">
+    <strong>Riga per riga:</strong><br>
+    <code>* b3aa22e (HEAD -&gt; dev)</code> — l'ultimo commit su dev ("commit su dev nel frattempo"). <code>HEAD -&gt; dev</code> = sei su dev. Questo commit <strong>non esiste</strong> sul binario di feature/rebase-test.<br><br>
+    <code>| * bcf2c4e (feature/rebase-test)</code> — il commit più recente di feature/rebase-test. Sta su un <strong>binario parallelo</strong> (<code>| *</code>) — non discende da <code>b3aa22e</code>.<br><br>
+    <code>| * 8fbaef0</code> — il primo commit di feature/rebase-test. Anch'esso sul binario parallelo.<br><br>
+    <code>|/</code> — punto di biforcazione. Da qui i due branch hanno preso strade diverse. L'antenato comune è il commit sotto: <code>9697c2c</code>.<br><br>
+    <code>*&nbsp;&nbsp; 9697c2c (origin/dev)</code> — l'antenato comune. Sia dev che feature/rebase-test sono partiti da qui. Il rebase sposterà i commit del feature branch "sopra" <code>b3aa22e</code>, eliminando questa biforcazione.
+  </div>
+
+  <pre><code>git switch feature/rebase-test
+git rebase dev
+git log --oneline --graph --all</code></pre>
+
+  <h3>Log dopo il rebase — storia lineare</h3>
+  <div class="git-log"><span class="g">* </span><span class="h">1721453</span> <span class="rf">(HEAD -&gt; feature/rebase-test)</span> feat: aggiunta file rebase 2
+<span class="g">* </span><span class="h">dd361f6</span> feat: aggiunta file rebase 1
+<span class="g">* </span><span class="h">b3aa22e</span> <span class="r">(dev)</span> feat: commit su dev nel frattempo
+<span class="g">*   </span><span class="h">9697c2c</span> <span class="ro">(origin/dev)</span> <span class="m">Merged PR 2: feat: aggiunta navbar</span></div>
+  <div class="log-annotation">
+    <strong>Riga per riga:</strong><br>
+    <code>* 1721453 (HEAD -&gt; feature/rebase-test)</code> — il secondo commit del feature branch, <strong>riscritto</strong>. Contenuto identico a <code>bcf2c4e</code> di prima, ma hash diverso perché ora il suo genitore è <code>b3aa22e</code> invece di <code>9697c2c</code>.<br><br>
+    <code>* dd361f6</code> — il primo commit del feature branch, anch'esso riscritto (<code>8fbaef0</code> → <code>dd361f6</code>). Stesso contenuto, nuovo genitore.<br><br>
+    <code>* b3aa22e (dev)</code> — il commit "nel frattempo" su dev. <strong>Invariato</strong> — stesso hash di prima. Il rebase non tocca dev.<br><br>
+    <code>*&nbsp;&nbsp; 9697c2c (origin/dev)</code> — l'antenato comune. Invariato.<br><br>
+    La <strong>linea dritta</strong> è la prova del rebase riuscito: non c'è più la biforcazione <code>| *</code>/<code>|/</code>. I commit sembrano essere stati fatti direttamente su dev, in sequenza. Ma attenzione: gli hash vecchi (<code>bcf2c4e</code>, <code>8fbaef0</code>) esistono ancora nel reflog per 90 giorni.
+  </div>
+
+  <hr class="divider" id="f4-interactive">
+  <h2>4.2 — Interactive rebase (squash)</h2>
+  <p>Unisci più commit in uno solo prima di pushare — utile per pulire una serie di commit "sporchi".</p>
+
+  <pre><code># aggiungi un terzo commit a feature/rebase-test
+git add .
+git commit -m "feat: aggiunta file rebase 3"
+git rebase -i HEAD~3</code></pre>
+
+  <p>Si apre l'editor. Modifica <code>pick</code> in <code>s</code> (squash) per i commit 2 e 3:</p>
+  <pre><code>pick dd361f6 feat: aggiunta file rebase 1
+s 1721453 feat: aggiunta file rebase 2
+s b2008f4 feat: aggiunta file rebase 3</code></pre>
+
+  <p>Salva e chiudi. Si apre un secondo editor per il messaggio finale — scrivi:</p>
+  <pre><code>feat: aggiunta file rebase completo</code></pre>
+
+  <h3>Log dopo lo squash</h3>
+  <div class="git-log"><span class="g">* </span><span class="h">f9413bd</span> <span class="rf">(HEAD -&gt; feature/rebase-test)</span> feat: aggiunta file rebase completo
+<span class="g">| * </span><span class="h">1721453</span> <span class="ro">(origin/feature/rebase-test)</span> feat: aggiunta file rebase 2
+<span class="g">| * </span><span class="h">dd361f6</span> feat: aggiunta file rebase 1
+<span class="g">|/  </span>
+<span class="g">* </span><span class="h">b3aa22e</span> <span class="ro">(origin/dev, dev)</span> feat: commit su dev nel frattempo</div>
+  <div class="log-annotation">
+    <strong>Riga per riga:</strong><br>
+    <code>* f9413bd (HEAD -&gt; feature/rebase-test)</code> — il commit unico risultato dello squash. Contiene le modifiche di tutti e 3 i commit originali.<br><br>
+    <code>| * 1721453 (origin/feature/rebase-test)</code> — il remoto è ancora al vecchio stato con 2 commit separati. <code>| *</code> = binario parallelo. Locale e remoto sono <strong>divergiti</strong>.<br><br>
+    <code>| * dd361f6</code> — il secondo vecchio commit sul remoto.<br><br>
+    <code>|/</code> — il punto di divergenza: da qui la storia locale e quella remota sono diverse.<br><br>
+    <code>* b3aa22e (origin/dev, dev)</code> — l'antenato comune. Sia locale che remoto concordano su questo punto.<br><br>
+    Questa biforcazione tra locale e remoto è esattamente perché non puoi fare <code>git push</code> normale — il remoto ha una storia diversa. Serve <code>--force-with-lease</code> per sovrascriverla.
+  </div>
+
+  <hr class="divider" id="f4-force">
+  <h2>4.3 — --force-with-lease</h2>
+
+  <pre><code>git push --force-with-lease origin feature/rebase-test</code></pre>
+
+  <h3>Output del push forzato</h3>
+  <pre><code>+ 1721453...f9413bd feature/rebase-test -> feature/rebase-test (forced update)</code></pre>
+
+  <div class="log-annotation">
+    <strong>Cosa osservare:</strong> il <code>+</code> e <code>forced update</code> confermano che Git ha sovrascritto la storia remota. <code>1721453...f9413bd</code> mostra il vecchio hash sostituito dal nuovo.
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Perché --force-with-lease e non --force?</div>
+    <p><code>--force</code> sovrascrive il remoto incondizionatamente. <code>--force-with-lease</code> sovrascrive <strong>solo se nessun altro ha pushato nel frattempo</strong> — se qualcuno ha aggiunto commit dopo il tuo ultimo fetch, il push viene rifiutato e non perdi il loro lavoro.</p>
+  </div>
+
+  <div class="nav-row">
+    <button class="nav-btn" onclick="showMod(2)">← Fase 3</button>
+    <button class="nav-btn next" onclick="showMod(4)">Fase 5 — Reset/Revert/Restore →</button>
+  </div>
+</div>
+
+<!-- ========== FASE 5 ========== -->
+<div class="mod-page" id="mod-4">
+  <div class="page-eyebrow eyebrow-teal">Fase 5 — Modulo 7 del tutorial</div>
+  <h1>Reset, Revert, Restore</h1>
+  <p class="page-sub">Il kit di pronto soccorso. Come tornare indietro in sicurezza a seconda della situazione.</p>
+
+  <h2 id="f5-revert">5.1 — git revert</h2>
+  <p>Il modo sicuro per annullare un commit <strong>già pushato</strong>. Non cancella nulla: crea un nuovo commit che fa l'opposto.</p>
+
+  <pre><code>git switch dev
+# modifica un file, poi:
+git add .
+git commit -m "feat: commit sbagliato"
+git push origin dev
+git revert HEAD
+# si apre l'editor con messaggio precompilato — lascialo e chiudi
+git push origin dev
+git log --oneline</code></pre>
+
+  <h3>Log reale ottenuto</h3>
+  <div class="git-log"><span class="g">* </span><span class="h">cb76bfb</span> <span class="r">(HEAD -&gt; dev, origin/dev)</span> Revert "feat: commit sbagliato"
+<span class="g">* </span><span class="h">1a8c5a7</span> feat: commit sbagliato
+<span class="g">* </span><span class="h">b3aa22e</span> feat: commit su dev nel frattempo
+<span class="g">*   </span><span class="h">9697c2c</span> <span class="m">Merged PR 2: feat: aggiunta navbar</span></div>
+  <div class="log-annotation">
+    <strong>Riga per riga:</strong><br>
+    <code>* cb76bfb (HEAD -&gt; dev, origin/dev)</code> — il commit di revert, già pushato. <code>origin/dev</code> è allineato con <code>dev</code> = push riuscito senza problemi.<br><br>
+    <code>* 1a8c5a7</code> — il commit sbagliato originale. <strong>È ancora lì</strong> — il revert non cancella nulla dalla storia. Chiunque guardi il log vede esattamente cosa è successo: un commit sbagliato e il suo annullamento.<br><br>
+    <code>* b3aa22e</code> — il commit precedente. Invariato.<br><br>
+    Confronta con <code>reset --hard</code>: lì il commit sparisce dalla storia (ma rimane nel reflog). Con <code>revert</code> rimane tutto visibile. Questo è il comportamento corretto su branch condivisi: mai riscrivere la storia che altri potrebbero già avere in locale.
+  </div>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Caso delicato</div>
+    <p>Se un collega ha pushato codice che <strong>dipende</strong> dal tuo commit sbagliato, il revert rimuove le dipendenze che si aspettava e il progetto potrebbe non compilare. Parla sempre con il team prima di fare revert su branch condivisi.</p>
+  </div>
+
+  <hr class="divider" id="f5-reset">
+  <h2>5.2 — git reset (soft / mixed / hard)</h2>
+  <p>Crea 3 commit di test, poi prova le 3 varianti di reset.</p>
+
+  <pre><code># modifica file, poi:
+git add . && git commit -m "feat: commit A"
+git add . && git commit -m "feat: commit B"
+git add . && git commit -m "feat: commit C"</code></pre>
+
+  <h3>--soft: annulla commit, mantiene staging</h3>
+  <pre><code>git reset --soft HEAD~3
+git status   # Changes to be committed
+git log --oneline   # A, B, C spariti</code></pre>
+  <p>Le modifiche sono ancora in staging area — pronte per un nuovo commit senza fare <code>git add</code>.</p>
+
+  <h3>--mixed: annulla commit, mantiene working dir</h3>
+  <pre><code>git reset --mixed HEAD~3
+git status   # Changes not staged for commit
+git log --oneline   # A, B, C spariti</code></pre>
+  <p>Le modifiche sono ancora sul disco ma fuori dalla staging area — devi fare <code>git add</code> prima di committare.</p>
+
+  <h3>--hard: annulla commit e cancella tutto</h3>
+  <pre><code>git reset --hard HEAD~3
+git status   # nothing to commit, working tree clean
+git log --oneline   # A, B, C spariti</code></pre>
+  <p>Le modifiche sono sparite anche dal disco. Nessun undo — a meno di usare il reflog.</p>
+
+  <table class="anatomy">
+    <thead><tr><th>Flag</th><th>Commit</th><th>Staging area</th><th>Working directory</th></tr></thead>
+    <tbody>
+      <tr><td class="part">--soft</td><td class="desc">Annullati</td><td class="desc">Modifiche dentro</td><td class="desc">Modifiche dentro</td></tr>
+      <tr><td class="part">--mixed</td><td class="desc">Annullati</td><td class="desc">Modifiche fuori</td><td class="desc">Modifiche dentro</td></tr>
+      <tr><td class="part">--hard</td><td class="desc">Annullati</td><td class="desc">Modifiche fuori</td><td class="desc" style="color:var(--coral)">SPARITE</td></tr>
+    </tbody>
+  </table>
+
+  <hr class="divider" id="f5-reflog">
+  <h2>5.3 — git reflog</h2>
+  <p>La scatola nera di Git — registra ogni operazione, anche i reset <code>--hard</code>. Nulla viene davvero perso per 90 giorni.</p>
+
+  <pre><code>git reflog</code></pre>
+
+  <h3>Output reale (estratto)</h3>
+  <div class="git-log" style="font-size:11.5px;"><span class="h">cb76bfb</span> <span class="r">(HEAD -&gt; dev, origin/dev)</span> HEAD@{0}: reset: moving to HEAD~3
+<span class="h">96079ec</span> HEAD@{1}: commit: feat: commit C
+<span class="h">161e208</span> HEAD@{2}: commit: feat: commit B
+<span class="h">52c4a67</span> HEAD@{3}: commit: feat: commit ABC
+<span class="h">cb76bfb</span> HEAD@{4}: reset: moving to HEAD~3
+<span class="h">0b4463f</span> HEAD@{5}: commit: feat commit C
+<span class="h">e5a3c78</span> HEAD@{6}: commit: feat commit B
+<span class="h">39cb194</span> HEAD@{7}: commit: feat: commit ABC
+<span class="h">cb76bfb</span> HEAD@{8}: reset: moving to HEAD~3
+<span class="g">...</span>
+<span class="h">f9413bd</span> <span class="rf">(origin/feature/rebase-test, feature/rebase-test)</span> HEAD@{15}: rebase (finish): returning to refs/heads/feature/rebase-test
+<span class="h">b3aa22e</span> HEAD@{21}: checkout: moving from feature/rebase-test to dev
+<span class="h">bcf2c4e</span> HEAD@{26}: commit: feat: aggiunta file rebase 2
+<span class="h">8fbaef0</span> HEAD@{30}: commit: feat: aggiunta file rebase 1</div>
+  <div class="log-annotation">
+    <strong>Riga per riga:</strong><br>
+    <code>cb76bfb HEAD@{0}: reset: moving to HEAD~3</code> — l'operazione più recente: il reset --hard appena eseguito. <code>HEAD@{0}</code> = posizione attuale di HEAD.<br><br>
+    <code>96079ec HEAD@{1}: commit: feat: commit C</code> — il commit C che sembrava perso. <code>HEAD@{1}</code> = dove era HEAD un'operazione fa. L'hash è ancora qui!<br><br>
+    <code>161e208 HEAD@{2}</code> e <code>52c4a67 HEAD@{3}</code> — i commit B e A, anch'essi recuperabili.<br><br>
+    <code>HEAD@{4}: reset: moving to HEAD~3</code> — un reset precedente (durante l'esercizio su --mixed). Il reflog registra <strong>tutto</strong>.<br><br>
+    <code>HEAD@{15}: rebase (finish)</code> — il rebase della Fase 4. Il reflog mostra anche le operazioni interne del rebase.<br><br>
+    Per recuperare il commit C: <code>git reset --hard 96079ec</code>. Per recuperare solo uno dei commit senza spostare HEAD: <code>git cherry-pick 161e208</code>.
+  </div>
+
+  <p>Per tornare pulito a <code>origin/dev</code>:</p>
+  <pre><code>git reset --hard origin/dev</code></pre>
+
+  <hr class="divider" id="f5-restore">
+  <h2>5.4 — git restore</h2>
+  <p>Agisce sul singolo file, non sull'intera storia.</p>
+
+  <h3>Scartare modifiche non ancora in staging</h3>
+  <pre><code># modifica dashboard.txt ma NON fare git add
+git restore dashboard.txt
+git status   # nothing to commit</code></pre>
+
+  <h3>Togliere un file dalla staging area</h3>
+  <pre><code># modifica dashboard.txt e fai git add
+git restore --staged dashboard.txt
+git status   # Changes not staged for commit</code></pre>
+
+  <table class="anatomy">
+    <thead><tr><th>Comando</th><th>Cosa fa</th></tr></thead>
+    <tbody>
+      <tr><td class="part">git restore &lt;file&gt;</td><td class="desc">Scarta le modifiche dal disco</td></tr>
+      <tr><td class="part">git restore --staged &lt;file&gt;</td><td class="desc">Toglie dalla staging area, mantiene le modifiche sul disco</td></tr>
+    </tbody>
+  </table>
+
+  <div class="nav-row">
+    <button class="nav-btn" onclick="showMod(3)">← Fase 4</button>
+    <button class="nav-btn next" onclick="showMod(5)">Fase 6 — Cherry-pick →</button>
+  </div>
+</div>
+
+<!-- ========== FASE 6 ========== -->
+<div class="mod-page" id="mod-5">
+  <div class="page-eyebrow eyebrow-purple">Fase 6 — Moduli 8/9 del tutorial</div>
+  <h1>Cherry-pick 🍒</h1>
+  <p class="page-sub">Prendi un commit specifico da qualsiasi punto della storia e applicalo dove vuoi.</p>
+
+  <h2 id="f6-base">6.1 — Cherry-pick base</h2>
+  <p>Crea 3 commit distinti su file diversi, poi porta su <code>dev</code> solo il commit B.</p>
+
+  <pre><code>git switch dev
+git switch -c feature/cherry-test
+# crea commit-a.txt, poi:
+git add . && git commit -m "feat: commit A - file alpha"
+# crea commit-b.txt, poi:
+git add . && git commit -m "feat: commit B - file beta"
+# crea commit-c.txt, poi:
+git add . && git commit -m "feat: commit C - file gamma"
+git log --oneline   # prendi nota degli hash</code></pre>
+
+  <h3>Log del feature branch</h3>
+  <div class="git-log"><span class="g">* </span><span class="h">58cea56</span> <span class="rf">(HEAD -&gt; feature/cherry-test)</span> feat: commit A - file gamma
+<span class="g">* </span><span class="h">08a286e</span> feat: commit A - file beta
+<span class="g">* </span><span class="h">cb59bf6</span> feat: commit A - file alpha
+<span class="g">* </span><span class="h">df53ee5</span> <span class="ro">(origin/dev, dev)</span> spostato dashboard di cartella</div>
+
+  <pre><code>git switch dev
+git cherry-pick 08a286e   # l'hash del commit B
+git log --oneline</code></pre>
+
+  <h3>Log di dev dopo il cherry-pick</h3>
+  <div class="git-log"><span class="g">* </span><span class="h">6488e18</span> <span class="r">(HEAD -&gt; dev)</span> feat: commit A - file beta
+<span class="g">* </span><span class="h">df53ee5</span> <span class="ro">(origin/dev)</span> spostato dashboard di cartella
+<span class="g">*   </span><span class="h">9697c2c</span> <span class="m">Merged PR 2: feat: aggiunta navbar</span></div>
+  <div class="log-annotation">
+    <strong>Riga per riga (log di dev dopo il cherry-pick):</strong><br>
+    <code>* 6488e18 (HEAD -&gt; dev)</code> — il commit copiato da cherry-pick. L'hash è <strong>diverso</strong> da <code>08a286e</code> del feature branch — è un commit completamente nuovo, con lo stesso contenuto ma con un genitore diverso (<code>df53ee5</code> invece di <code>cb59bf6</code>).<br><br>
+    <code>* df53ee5 (origin/dev)</code> — il commit precedente di dev. <code>origin/dev</code> è rimasto qui = non hai ancora pushato.<br><br>
+    <code>*&nbsp;&nbsp; 9697c2c</code> — la PR 2. Più vecchio, invariato.<br><br>
+    <strong>Cosa NON vedi:</strong> i commit A (<code>cb59bf6</code>) e C (<code>58cea56</code>) di feature/cherry-test. Non sono stati toccati — il cherry-pick ha preso <strong>solo</strong> il commit B e lo ha replicato su dev.
+  </div>
+
+  <hr class="divider" id="f6-conflict">
+  <h2>6.2 — Cherry-pick con conflitto</h2>
+
+  <pre><code>git switch dev
+# modifica dashboard.txt, poi:
+git add . && git commit -m "feat: modifica dashboard su dev"
+git switch feature/cherry-test
+# modifica la STESSA riga di dashboard.txt, poi:
+git add . && git commit -m "feat: modifica dashboard su feature"
+git log --oneline   # prendi nota dell'hash di questo commit
+git switch dev
+git cherry-pick &lt;hash&gt;</code></pre>
+
+  <h3>Output del cherry-pick in conflitto</h3>
+  <pre><code>Auto-merging dashboard.txt
+CONFLICT (content): Merge conflict in dashboard.txt
+error: could not apply &lt;hash&gt;...
+hint: After resolving the conflicts, mark them with
+hint: "git add/rm &lt;pathspec&gt;", then run
+hint: "git cherry-pick --continue".</code></pre>
+
+  <p>Risolvi il file a mano (rimuovi i marcatori), poi:</p>
+  <pre><code>git add .
+git cherry-pick --continue
+# si apre l'editor con il messaggio precompilato — lascialo e chiudi
+git push origin dev</code></pre>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">Cherry-pick come strumento di recupero</div>
+    <p>Se hai fatto un <code>reset --hard</code> e vuoi recuperare solo uno dei commit "persi" (visibili nel reflog), puoi usare <code>git cherry-pick &lt;hash&gt;</code> invece di spostare tutta la HEAD con <code>reset --hard</code>.</p>
+  </div>
+
+  <div class="nav-row">
+    <button class="nav-btn" onclick="showMod(4)">← Fase 5</button>
+    <button class="nav-btn next" onclick="showMod(6)">Riepilogo →</button>
+  </div>
+</div>
+
+<!-- ========== RIEPILOGO ========== -->
+<div class="mod-page" id="mod-6">
+  <div class="page-eyebrow eyebrow-amber">Riepilogo</div>
+  <h1>Comandi &amp; Tabelle</h1>
+  <p class="page-sub">Tutto quello che serve sempre a portata di mano.</p>
+
+  <h2 id="riepilogo-reset">Tabella reset</h2>
+  <table class="anatomy">
+    <thead><tr><th>Flag</th><th>Commit</th><th>Staging area</th><th>Working directory</th></tr></thead>
+    <tbody>
+      <tr><td class="part">--soft</td><td class="desc">Annullati</td><td class="desc">Modifiche dentro ✅</td><td class="desc">Modifiche dentro ✅</td></tr>
+      <tr><td class="part">--mixed</td><td class="desc">Annullati</td><td class="desc">Modifiche fuori ❌</td><td class="desc">Modifiche dentro ✅</td></tr>
+      <tr><td class="part">--hard</td><td class="desc">Annullati</td><td class="desc">Modifiche fuori ❌</td><td class="desc" style="color:var(--coral)">SPARITE ❌</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tabella ours / theirs</h2>
+  <table class="anatomy">
+    <thead><tr><th>Contesto</th><th>ours</th><th>theirs</th></tr></thead>
+    <tbody>
+      <tr><td class="part">git merge</td><td class="desc">Branch corrente (quello che riceve)</td><td class="desc">Branch che stai mergando</td></tr>
+      <tr><td class="part">git rebase</td><td class="desc">Branch che stai rebasando (si INVERTE!)</td><td class="desc">Branch su cui stai rebasando</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="riepilogo-comandi">Tutti i comandi</h2>
+  <table class="anatomy">
+    <thead><tr><th>Comando</th><th>Descrizione</th></tr></thead>
+    <tbody>
+      <tr><td class="part">git switch -c &lt;branch&gt;</td><td class="desc">Crea e sposta su un nuovo branch</td></tr>
+      <tr><td class="part">git merge --no-ff &lt;branch&gt;</td><td class="desc">Merge con commit esplicito</td></tr>
+      <tr><td class="part">git merge -X ours &lt;branch&gt;</td><td class="desc">Merge: vince il branch corrente in caso di conflitto</td></tr>
+      <tr><td class="part">git merge -X theirs &lt;branch&gt;</td><td class="desc">Merge: vince il branch mergato in caso di conflitto</td></tr>
+      <tr><td class="part">git log --oneline --graph --all</td><td class="desc">Visualizza la storia completa con grafo</td></tr>
+      <tr><td class="part">git log A..B</td><td class="desc">Commit in B ma non in A (utile prima del merge)</td></tr>
+      <tr><td class="part">git rebase &lt;branch&gt;</td><td class="desc">Linearizza la storia del branch corrente</td></tr>
+      <tr><td class="part">git rebase -i HEAD~N</td><td class="desc">Interactive rebase sugli ultimi N commit</td></tr>
+      <tr><td class="part">git push --force-with-lease</td><td class="desc">Push dopo rebase — sicuro</td></tr>
+      <tr><td class="part">git revert HEAD</td><td class="desc">Annulla l'ultimo commit pushato — sicuro</td></tr>
+      <tr><td class="part">git reset --soft HEAD~N</td><td class="desc">Annulla N commit, mantiene staging</td></tr>
+      <tr><td class="part">git reset --mixed HEAD~N</td><td class="desc">Annulla N commit, mantiene working dir</td></tr>
+      <tr><td class="part">git reset --hard HEAD~N</td><td class="desc">Annulla N commit, cancella tutto</td></tr>
+      <tr><td class="part">git reset --hard origin/dev</td><td class="desc">Ripristina dev locale al remoto</td></tr>
+      <tr><td class="part">git reflog</td><td class="desc">Mostra la storia completa inclusi reset</td></tr>
+      <tr><td class="part">git restore &lt;file&gt;</td><td class="desc">Scarta modifiche dal disco</td></tr>
+      <tr><td class="part">git restore --staged &lt;file&gt;</td><td class="desc">Toglie dalla staging area</td></tr>
+      <tr><td class="part">git cherry-pick &lt;hash&gt;</td><td class="desc">Copia un commit sul branch corrente</td></tr>
+      <tr><td class="part">git cherry-pick --continue</td><td class="desc">Continua dopo aver risolto un conflitto</td></tr>
+      <tr><td class="part">git fetch origin</td><td class="desc">Scarica lo stato del remoto senza mergare</td></tr>
+      <tr><td class="part">git pull origin &lt;branch&gt;</td><td class="desc">fetch + merge — allinea il locale al remoto</td></tr>
+      <tr><td class="part">git status</td><td class="desc">Stato attuale: branch, staging, divergenze</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Argomenti da approfondire</div>
+    <p>Questi argomenti sono nel tutorial ma non sono stati toccati in questa sessione pratica: <strong>git pull --rebase</strong>, <strong>git restore --source</strong> (recuperare un file da un commit specifico), <strong>disaster recovery completo col reflog</strong>, <strong>i 3 scenari di --force-with-lease</strong>.</p>
+  </div>
+
+  <div class="nav-row">
+    <button class="nav-btn" onclick="showMod(5)">← Fase 6</button>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+function showMod(n) {
+  document.querySelectorAll('.mod-page').forEach(p => p.classList.remove('visible'));
+  const page = document.getElementById('mod-' + n);
+  if (page) page.classList.add('visible');
+  document.querySelectorAll('.mod-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mod-group').forEach(g => g.classList.remove('open'));
+  const grp = document.getElementById('group-' + n);
+  if (grp) {
+    grp.classList.add('open');
+    const btn = grp.querySelector('.mod-btn');
+    if (btn) btn.classList.add('active');
+  }
+  window.scrollTo(0, 0);
+}
+function showAndScroll(n, sectionId) {
+  showMod(n);
+  if (!sectionId) return;
+  setTimeout(() => {
+    const el = document.getElementById(sectionId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
+}
+document.addEventListener('DOMContentLoaded', () => { showMod(0); });
+</script>
+</body>
+</html>
