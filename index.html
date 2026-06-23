@@ -214,11 +214,12 @@
       <span class="mod-chevron">▸</span>
     </button>
     <div class="mod-sections">
-      <a class="sec-link" href="#" onclick="showAndScroll(3,'sec-remote-mod4');return false;">4.1 — Cos'è un remote</a>
-      <a class="sec-link" href="#" onclick="showAndScroll(3,'sec-fetch-pull-push');return false;">4.2 — Fetch, pull e push</a>
-      <a class="sec-link" href="#" onclick="showAndScroll(3,'sec-tracking-mod4');return false;">4.3 — I tracking branch</a>
-      <a class="sec-link" href="#" onclick="showAndScroll(3,'sec-divergenza-mod4');return false;">4.4 — La divergenza locale/remota</a>
-      <a class="sec-link" href="#" onclick="showAndScroll(3,'sec-azure-pr-mod4');return false;">4.5 — Push e Pull in Azure DevOps</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(3,'sec-clone-mod4');return false;">4.1 — git clone</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(3,'sec-remote-mod4');return false;">4.2 — Cos'è un remote</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(3,'sec-fetch-pull-push');return false;">4.3 — Fetch, pull e push</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(3,'sec-tracking-mod4');return false;">4.4 — I tracking branch</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(3,'sec-divergenza-mod4');return false;">4.5 — La divergenza locale/remota</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(3,'sec-azure-pr-mod4');return false;">4.6 — Push e Pull in Azure DevOps</a>
     </div>
   </div>
 
@@ -1553,7 +1554,76 @@ git switch master             <span class="cm"># torna su master (HEAD si riatta
   <h1>Remote, push e pull</h1>
   <p class="page-sub">origin · fetch · pull · push · tracking branch · divergenza locale/remota · Azure DevOps</p>
 
-  <h2 id="sec-remote-mod4">4.1 — Cos'è un remote</h2>
+  <h2 id="sec-clone-mod4">4.1 — git clone: copiare un repository</h2>
+
+  <p><code>git clone</code> è il comando con cui si parte quasi sempre quando si entra in un progetto esistente: crea una copia locale completa di un repository remoto, compresa tutta la history, tutti i branch e tutti i tag.</p>
+
+  <p>Non è un semplice download di file — è una copia integrale del database Git. Dal momento del clone, il tuo repository locale è autonomo: puoi lavorare offline, consultare la history, creare branch, tutto senza connessione al remote.</p>
+
+  <pre><code><span class="cm"># Sintassi base</span>
+<span class="kw">git clone</span> &lt;url-del-repository&gt;
+
+<span class="cm"># Esempio con Azure DevOps (HTTPS)</span>
+<span class="kw">git clone</span> https://marconeri.visualstudio.com/MioProgetto/_git/MioRepo
+
+<span class="cm"># Git crea automaticamente una cartella "MioRepo" nella directory corrente</span>
+
+<span class="cm"># Specificare il nome della cartella di destinazione:</span>
+<span class="kw">git clone</span> https://marconeri.visualstudio.com/MioProgetto/_git/MioRepo <span class="hl">mia-cartella</span>
+
+<span class="cm"># Clonare nella cartella corrente senza creare sottocartella:</span>
+<span class="kw">git clone</span> https://marconeri.visualstudio.com/MioProgetto/_git/MioRepo <span class="hl">.</span></code></pre>
+
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">git clone</td><td class="desc">crea una copia locale completa del repository remoto, inclusa tutta la history</td></tr>
+      <tr><td class="part">&lt;url&gt;</td><td class="desc">indirizzo del repository remoto — su Azure DevOps si trova nel pulsante "Clone" della pagina del repo</td></tr>
+      <tr><td class="part">mia-cartella</td><td class="desc">opzionale — nome della cartella locale da creare; se omesso Git usa il nome del repo</td></tr>
+      <tr><td class="part">.</td><td class="desc">punto = cartella corrente; clona il contenuto direttamente qui senza creare sottocartella</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Cosa succede dopo un clone</h3>
+
+  <p>Git fa tre cose automaticamente:</p>
+  <p><strong>1.</strong> Scarica tutti gli oggetti del repository (commit, file, history completa)</p>
+  <p><strong>2.</strong> Configura il remote <code>origin</code> puntando all'URL indicato</p>
+  <p><strong>3.</strong> Crea il branch locale <code>main</code> tracciando <code>origin/main</code> e ci fa checkout</p>
+
+  <pre><code><span class="cm"># Dopo il clone, verifica cosa ha configurato Git:</span>
+<span class="kw">git remote</span> -v
+<span class="cm"># origin  https://marconeri.visualstudio.com/MioProgetto/_git/MioRepo (fetch)
+# origin  https://marconeri.visualstudio.com/MioProgetto/_git/MioRepo (push)</span>
+
+<span class="kw">git branch</span> -a
+<span class="cm"># * main                          ← branch locale attivo
+#   remotes/origin/main
+#   remotes/origin/feature/login   ← tutti i branch remoti sono visibili</span></code></pre>
+
+  <h3>Clone con autenticazione su Azure DevOps</h3>
+
+  <p>Su Azure DevOps aziendale il clone via HTTPS richiede autenticazione. Il modo più comodo è usare il <strong>Git Credential Manager</strong> (installato automaticamente con Git for Windows): al primo clone apre una finestra di login Microsoft e salva le credenziali per le volte successive.</p>
+
+  <pre><code><span class="cm"># Clone normale — Git Credential Manager gestisce il login automaticamente</span>
+<span class="kw">git clone</span> https://marconeri.visualstudio.com/MioProgetto/_git/MioRepo
+
+<span class="cm"># Alternativa con PAT (Personal Access Token) nell'URL:</span>
+<span class="kw">git clone</span> https://<span class="hl">marconeri</span>:<span class="hl">IL_TUO_PAT</span>@marconeri.visualstudio.com/MioProgetto/_git/MioRepo</code></pre>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">💡 Trova l'URL di clone su Azure DevOps</div>
+    <p>Nel repo su Azure DevOps, in alto a destra c'è il pulsante <strong>"Clone"</strong>. Cliccando mostra l'URL HTTPS già pronto da copiare. Non digitare l'URL a mano — usalo sempre da lì.</p>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-label">ℹ️ Clone e submodule</div>
+    <p>Se il repository contiene submodule, il clone normale non li scarica — le cartelle rimangono vuote. Usa <code>git clone --recurse-submodules &lt;url&gt;</code> per clonarli tutti insieme. (→ <a href="#" class="xref" onclick="showAndScroll(8,'sec-submodule-mod9');return false;">Modulo 9 §9.10 — Submodule</a>)</p>
+  </div>
+
+  <hr class="divider">
+
+  <h2 id="sec-remote-mod4">4.2 — Cos'è un remote</h2>
   <p>Un <strong>remote</strong> è semplicemente un alias che punta a un altro repository Git — nella maggior parte dei casi su Azure DevOps, GitHub o simili. Non è magia: è solo un URL memorizzato nella config del tuo repo.</p>
 
   <p>Quando fai <code>git clone</code>, Git fa due cose insieme: copia tutti gli oggetti del repository remoto in locale (commit, blob, tree — l'intero database), e <strong>registra l'URL di provenienza</strong> sotto il nome <code>origin</code>. Quel nome è letteralmente salvato in <code>.git/config</code>:</p>
@@ -1582,7 +1652,7 @@ git remote remove upstream            <span class="cm"># rimuove un remote</span
 
   <hr class="divider">
 
-  <h2 id="sec-fetch-pull-push">4.2 — La differenza tra fetch, pull e push</h2>
+  <h2 id="sec-fetch-pull-push">4.3 — La differenza tra fetch, pull e push</h2>
   <p>Questi tre comandi gestiscono la sincronizzazione con il remote. Capire <em>cosa toccano</em> e <em>cosa non toccano</em> ti salva da brutte sorprese.</p>
 
   <div style="margin:20px 0;border-radius:8px;overflow:hidden;">
@@ -1680,7 +1750,7 @@ git push origin feature/login      <span class="cm"># push esplicito senza -u (t
 
   <hr class="divider">
 
-  <h2 id="sec-tracking-mod4">4.3 — I tracking branch</h2>
+  <h2 id="sec-tracking-mod4">4.4 — I tracking branch</h2>
   <p>Quando imposti il tracking con <code>-u</code>, Git crea un collegamento tra il tuo branch locale e il corrispondente branch remoto. Questa coppia si chiama <strong>tracking branch</strong>.</p>
 
   <div class="diagram">
@@ -1707,7 +1777,7 @@ git branch -vv      <span class="cm"># elenca i branch locali con stato di track
 
   <hr class="divider">
 
-  <h2 id="sec-divergenza-mod4">4.4 — La divergenza locale/remota</h2>
+  <h2 id="sec-divergenza-mod4">4.5 — La divergenza locale/remota</h2>
   <p>La situazione più delicata è quando la storia <strong>diverge</strong>: tu hai fatto commit in locale, ma nel frattempo qualcuno ha pushato sul remote. I due rami della storia si sono separati.</p>
 
   <div style="margin:20px 0;border-radius:8px;overflow:hidden;">
@@ -1766,7 +1836,7 @@ git push</code></pre>
 
   <hr class="divider">
 
-  <h2 id="sec-azure-pr-mod4">4.5 — Push e Pull in Azure DevOps</h2>
+  <h2 id="sec-azure-pr-mod4">4.6 — Push e Pull in Azure DevOps</h2>
   <p>Su Azure DevOps il flusso tipico è: lavori su un branch locale, fai push, poi apri una <strong>Pull Request</strong> (PR) dall'interfaccia web per chiedere la revisione e l'integrazione su <code>main</code> o <code>dev</code>.</p>
 
   <pre><code><span class="cm"># Flusso completo tipico su Azure DevOps:</span>
@@ -5229,7 +5299,7 @@ mvn test -q
       <tr>
         <td class="part">Divergenza</td>
         <td class="desc">Situazione in cui il branch locale e il suo tracking remoto hanno entrambi commit esclusivi. Un semplice push viene rifiutato — serve fetch + merge o rebase prima.</td>
-        <td class="desc"><a class="xref" href="#" onclick="showAndScroll(3,'sec-divergenza-mod4');return false;">Mod 4 §4.4</a></td>
+        <td class="desc"><a class="xref" href="#" onclick="showAndScroll(3,'sec-divergenza-mod4');return false;">Mod 4 §4.5</a></td>
       </tr>
 
       <tr>
@@ -5241,7 +5311,7 @@ mvn test -q
       <tr>
         <td class="part">Fetch</td>
         <td class="desc">Scarica dal remote i nuovi oggetti e aggiorna i tracking branch remoti (es. <code>origin/main</code>). Non tocca il working tree né i branch locali.</td>
-        <td class="desc"><a class="xref" href="#" onclick="showAndScroll(3,'sec-fetch-pull-push');return false;">Mod 4 §4.1</a></td>
+        <td class="desc"><a class="xref" href="#" onclick="showAndScroll(3,'sec-fetch-pull-push');return false;">Mod 4 §4.3</a></td>
       </tr>
 
       <tr>
@@ -5289,7 +5359,7 @@ mvn test -q
       <tr>
         <td class="part">Pull</td>
         <td class="desc">Combinazione di fetch + merge (o fetch + rebase con <code>--rebase</code>). Aggiorna il branch locale con i nuovi commit del remote.</td>
-        <td class="desc"><a class="xref" href="#" onclick="showAndScroll(3,'sec-fetch-pull-push');return false;">Mod 4 §4.1</a></td>
+        <td class="desc"><a class="xref" href="#" onclick="showAndScroll(3,'sec-fetch-pull-push');return false;">Mod 4 §4.3</a></td>
       </tr>
 
       <tr>
@@ -5391,7 +5461,7 @@ mvn test -q
       <tr>
         <td class="part">Tracking branch</td>
         <td class="desc">Relazione tra un branch locale e il suo corrispettivo remoto (es. <code>main</code> → <code>origin/main</code>). Permette a Git di sapere se sei avanti, dietro o divergente rispetto al remote.</td>
-        <td class="desc"><a class="xref" href="#" onclick="showAndScroll(3,'sec-tracking-mod4');return false;">Mod 4 §4.3</a></td>
+        <td class="desc"><a class="xref" href="#" onclick="showAndScroll(3,'sec-tracking-mod4');return false;">Mod 4 §4.4</a></td>
       </tr>
 
       <tr>
