@@ -124,6 +124,21 @@
 <nav class="sidebar">
   <div class="sidebar-title">🥋 Pratica Git</div>
 
+  <div class="mod-group" id="group-init">
+    <button class="mod-btn" onclick="showMod('init')">
+      <span class="mod-dot dot-teal"></span>
+      <span class="mod-btn-text"><strong>Fase 0</strong><span class="mod-label">Setup: da zero al remoto</span></span>
+      <span class="mod-chevron">▸</span>
+    </button>
+    <div class="mod-sections">
+      <a class="sec-link" href="#" onclick="showAndScroll('init','f0-init');return false;">0.1 — git init e primo commit</a>
+      <a class="sec-link" href="#" onclick="showAndScroll('init','f0-remote');return false;">0.2 — Collegare il remoto</a>
+      <a class="sec-link" href="#" onclick="showAndScroll('init','f0-push');return false;">0.3 — Push iniziale</a>
+      <a class="sec-link" href="#" onclick="showAndScroll('init','f0-clone');return false;">0.4 — Alternativa: git clone</a>
+      <a class="sec-link" href="#" onclick="showAndScroll('init','f0-unstage');return false;">0.5 — Annullare un git add</a>
+    </div>
+  </div>
+
   <div class="mod-group" id="group-0">
     <button class="mod-btn active" onclick="showMod(0)">
       <span class="mod-dot dot-teal"></span>
@@ -216,6 +231,151 @@
 </nav>
 
 <main class="main">
+
+<!-- ========== FASE 0 ========== -->
+<div class="mod-page" id="mod-init">
+  <div class="page-eyebrow eyebrow-teal">Fase 0 — Setup iniziale</div>
+  <h1>Da zero al remoto</h1>
+  <p class="page-sub">Come portare un progetto locale su Azure DevOps (o GitHub) partendo da <code>git init</code>, oppure clonarne uno già esistente.</p>
+
+  <h2 id="f0-init">0.1 — Inizializzare il repo e fare il primo commit</h2>
+  <p>Il punto di partenza assoluto: una cartella vuota (o con dei file già presenti) che vuoi mettere sotto controllo versione.</p>
+
+  <pre><code># Entra nella cartella del progetto
+cd C:\progetti\mio-progetto
+
+# Inizializza il repo Git locale
+git init
+
+# Rinomina il branch di default (main è la convenzione moderna)
+git branch -M main
+
+# Aggiungi tutti i file e fai il primo commit
+git add .
+git commit -m "chore: primo commit"</code></pre>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Perché git branch -M main?</div>
+    <p>Git crea storicamente il branch di default come <code>master</code>. Azure DevOps e GitHub usano <code>main</code> come convenzione attuale. Il flag <code>-M</code> forza il rename anche se esiste già un branch con quel nome. Farlo subito evita disallineamenti col remoto.</p>
+  </div>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Senza almeno un commit, il branch non esiste</div>
+    <p>Git non crea fisicamente il branch <code>main</code> finché non c'è almeno un commit. Se provi a pushare su un repo vuoto locale, non trovi nulla da mandare. Commit prima, push dopo.</p>
+  </div>
+
+  <hr class="divider" id="f0-remote">
+  <h2>0.2 — Collegare il remoto</h2>
+  <p>Prima di questo step, devi aver creato il repo su Azure DevOps (o GitHub) dalla UI — <strong>vuoto, senza README né .gitignore</strong>. Se il remoto ha già dei commit, il push iniziale andrà in conflitto.</p>
+
+  <pre><code># Azure DevOps
+git remote add origin https://&lt;organizzazione&gt;.visualstudio.com/&lt;Progetto&gt;/_git/&lt;NomeRepo&gt;
+
+# Oppure GitHub
+git remote add origin https://github.com/&lt;username&gt;/&lt;nome-repo&gt;.git</code></pre>
+
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">git remote add</td><td class="desc">Registra un nuovo remote nel repo locale</td></tr>
+      <tr><td class="part">origin</td><td class="desc">Alias del remote — convenzione universale, potresti chiamarlo diversamente</td></tr>
+      <tr><td class="part">https://...</td><td class="desc">URL del repo remoto — lo trovi nella UI di Azure DevOps / GitHub con il tasto "Clone"</td></tr>
+    </tbody>
+  </table>
+
+  <p>Per verificare che il remote sia stato aggiunto correttamente:</p>
+  <pre><code>git remote -v</code></pre>
+  <p>Dovresti vedere <code>origin</code> listato sia per fetch che per push.</p>
+
+  <hr class="divider" id="f0-push">
+  <h2>0.3 — Push iniziale</h2>
+
+  <pre><code>git push -u origin main</code></pre>
+
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">push</td><td class="desc">Manda i commit locali al remoto</td></tr>
+      <tr><td class="part">-u</td><td class="desc">Abbreviazione di <code>--set-upstream</code>: collega il branch locale <code>main</code> al remoto <code>origin/main</code></td></tr>
+      <tr><td class="part">origin</td><td class="desc">Il remote di destinazione</td></tr>
+      <tr><td class="part">main</td><td class="desc">Il branch da pushare</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">Il -u vale solo la prima volta</div>
+    <p>Dopo il primo <code>git push -u origin main</code>, Git ricorda il collegamento. Da quel momento basta <code>git push</code> senza specificare remote e branch.</p>
+  </div>
+
+  <h3>Sequenza completa in un colpo</h3>
+  <pre><code>git init
+git branch -M main
+git add .
+git commit -m "chore: primo commit"
+git remote add origin https://&lt;organizzazione&gt;.visualstudio.com/&lt;Progetto&gt;/_git/&lt;NomeRepo&gt;
+git push -u origin main</code></pre>
+
+  <hr class="divider" id="f0-clone">
+  <h2>0.4 — Alternativa: git clone</h2>
+  <p>Se il repo esiste già sul remoto e vuoi portarlo in locale, non hai bisogno di <code>git init</code> né di <code>git remote add</code>. Un solo comando fa tutto:</p>
+
+  <pre><code>git clone https://&lt;organizzazione&gt;.visualstudio.com/&lt;Progetto&gt;/_git/&lt;NomeRepo&gt;</code></pre>
+
+  <p>Questo crea una cartella col nome del repo, scarica tutto il contenuto e imposta automaticamente <code>origin</code> puntando al remoto. Sei operativo immediatamente.</p>
+
+  <table class="anatomy">
+    <thead><tr><th>Scenario</th><th>Approccio corretto</th></tr></thead>
+    <tbody>
+      <tr><td class="part">Progetto nuovo, parte dal tuo PC</td><td class="desc"><code>git init</code> → commit → <code>remote add</code> → <code>push -u</code></td></tr>
+      <tr><td class="part">Repo già esistente su Azure/GitHub</td><td class="desc"><code>git clone &lt;url&gt;</code> — tutto automatico</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Azure DevOps: crea il repo vuoto dalla UI prima</div>
+    <p>A differenza di GitHub che in certi flussi crea il repo al volo, su Azure DevOps devi sempre creare il repo dalla UI prima di poter fare il push. Vai su <strong>Repos → New repository</strong>, scegli Git, lascia vuoto (niente README), poi torna al terminale.</p>
+  </div>
+
+  <hr class="divider" id="f0-unstage">
+  <h2>0.5 — Annullare un <code>git add</code></h2>
+  <p>Hai fatto <code>git add</code> per sbaglio e vuoi togliere i file dalla staging area? Dipende da dove sei nel flusso.</p>
+
+  <h3>Caso A — Hai già almeno un commit</h3>
+  <pre><code># Tutto fuori dalla staging
+git restore --staged .
+
+# Solo un file
+git restore --staged nomefile.txt</code></pre>
+  <p>Le modifiche rimangono sul disco — vengono solo tolte dalla staging area. Nessun danno.</p>
+
+  <h3>Caso B — Non hai ancora nessun commit (HEAD non esiste)</h3>
+  <p>Se usi <code>git restore --staged</code> prima del primo commit, Git risponde con:</p>
+  <pre><code>fatal: could not resolve 'HEAD'</code></pre>
+  <p>È normale: <code>HEAD</code> non esiste ancora perché non c'è nessun commit. Il comando da usare in questo caso è:</p>
+  <pre><code># Tutto fuori dalla staging
+git rm --cached .
+
+# Solo un file
+git rm --cached nomefile.txt</code></pre>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Perché --cached?</div>
+    <p>Il flag <code>--cached</code> dice a Git di operare <strong>solo sulla staging area</strong>, senza toccare i file sul disco. Senza quel flag, <code>git rm</code> eliminerebbe anche il file fisicamente.</p>
+  </div>
+
+  <table class="anatomy">
+    <thead><tr><th>Situazione</th><th>Comando</th></tr></thead>
+    <tbody>
+      <tr><td class="part">Dopo almeno un commit</td><td class="desc"><code>git restore --staged .</code></td></tr>
+      <tr><td class="part">Prima del primo commit</td><td class="desc"><code>git rm --cached .</code></td></tr>
+      <tr><td class="part">Vuoi anche buttare le modifiche dal disco</td><td class="desc"><code>git restore .</code> ⚠️ irreversibile</td></tr>
+    </tbody>
+  </table>
+
+  <div class="nav-row">
+    <button class="nav-btn next" onclick="showMod(0)">Fase 1: Branching &amp; Merge →</button>
+  </div>
+</div>
 
 <!-- ========== FASE 1 ========== -->
 <div class="mod-page visible" id="mod-0">
@@ -314,6 +474,7 @@ git log --oneline --graph --all</code></pre>
   </table>
 
   <div class="nav-row">
+    <button class="nav-btn" onclick="showMod('init')">← Fase 0 — Setup</button>
     <button class="nav-btn next" onclick="showMod(1)">Fase 2 — Conflitti →</button>
   </div>
 </div>
