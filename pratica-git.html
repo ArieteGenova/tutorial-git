@@ -399,20 +399,14 @@ git merge feature/login
 git log --oneline --graph --all</code></pre>
 
   <h3>Log reale ottenuto</h3>
-  <div class="git-log"><span class="g">* </span><span class="h">1db4b2a</span> <span class="r">(HEAD -&gt; dev, feature/login)</span> feat: aggiunta validazione pagina login
-<span class="g">* </span><span class="h">a762a42</span> feat: aggiunta pagina login
-<span class="g">*   </span><span class="h">ed2b466</span> <span class="m">Merged PR 1: feat: creato terzo commento</span>
-<span class="g">|\  </span>
-<span class="g">| * </span><span class="h">ef25921</span> <span class="rf">(origin/feature/SecondoBranchProva, feature/SecondoBranchProva)</span> feat: creato terzo commento
-<span class="g">|/  </span>
-<span class="g">* </span><span class="h">5f3a7b3</span> <span class="ro">(origin/master, origin/HEAD, master)</span> feat: primo commit — struttura iniziale progetto</div>
+  <div class="git-log"><span class="g">* </span><span class="h">fb21692</span> <span class="r">(HEAD -&gt; dev, feature/login)</span> feat: aggiunta validazione pagina login
+<span class="g">* </span><span class="h">7eeeb37</span> feat: aggiunta pagina login
+<span class="g">* </span><span class="h">c387ac1</span> <span class="ro">(origin/main, origin/dev, main)</span> primo commit</div>
   <div class="log-annotation">
     <strong>Riga per riga:</strong><br>
-    <code>* 1db4b2a (HEAD -&gt; dev, feature/login)</code> — il commit più recente. <code>HEAD -&gt; dev</code> = sei su dev. <code>feature/login</code> = il branch punta allo <strong>stesso</strong> commit. Due puntatori, un solo commit. Questa è la fast-forward: Git ha solo spostato il puntatore di dev in avanti, senza creare un commit di merge.<br><br>
-    <code>* a762a42</code> — il commit precedente di feature/login. Nessun ref accanto = commit intermedio, non punta nessun branch.<br><br>
-    <code>*&nbsp;&nbsp; ed2b466</code> — merge commit preesistente (tre spazi = merge). Da qui in giù è la storia che esisteva prima di questa esercitazione.<br><br>
-    <code>|\</code> e <code>|/</code> — biforcazione e ricongiuzione di un branch precedente (feature/SecondoBranchProva), già mergato prima.<br><br>
-    <code>* 5f3a7b3 (origin/master, origin/HEAD, master)</code> — il primo commit del repo. <code>origin/HEAD</code> = il branch di default sul remoto. <code>master</code> = branch principale locale mai aggiornato da allora.
+    <code>* fb21692 (HEAD -&gt; dev, feature/login)</code> — il commit più recente. <code>HEAD -&gt; dev</code> = sei su dev. <code>feature/login</code> punta allo <strong>stesso</strong> commit. Due puntatori, un solo commit — questa è la fast-forward: Git ha solo spostato il puntatore di dev in avanti, senza creare un commit di merge.<br><br>
+    <code>* 7eeeb37</code> — il commit precedente di feature/login. Nessun ref accanto = commit intermedio, non punta nessun branch.<br><br>
+    <code>* c387ac1 (origin/main, origin/dev, main)</code> — il primo commit del repo. <code>origin/main</code> e <code>origin/dev</code> sono ancora qui = non hai ancora pushato i nuovi commit. <code>main</code> = il branch main locale, fermo al primo commit.
   </div>
 
   <div class="callout callout-info">
@@ -428,6 +422,7 @@ git log --oneline --graph --all</code></pre>
 # crea dashboard.txt, poi:
 git add .
 git commit -m "feat: aggiunta pagina dashboard"
+# modifica dashboard.txt aggiungendo i widget, poi:
 git add .
 git commit -m "feat: aggiunta widget statistiche"
 git switch dev
@@ -435,21 +430,23 @@ git merge --no-ff feature/dashboard -m "merge: feature/dashboard in dev"
 git log --oneline --graph --all</code></pre>
 
   <h3>Log reale ottenuto</h3>
-  <div class="git-log"><span class="g">*   </span><span class="h">21f79e7</span> <span class="r">(HEAD -&gt; dev)</span> <span class="m">merge: feature/dashboard in dev</span>
+  <div class="git-log"><span class="g">*   </span><span class="h">08503e7</span> <span class="r">(HEAD -&gt; dev)</span> <span class="m">merge: feature/dashobard in dev</span>
 <span class="g">|\  </span>
-<span class="g">| * </span><span class="h">002101c</span> <span class="rf">(feature/dashboard)</span> feat: aggiunta widget statistiche
-<span class="g">| * </span><span class="h">6618858</span> feat: aggiunta pagina dashboard
+<span class="g">| * </span><span class="h">eff6980</span> <span class="rf">(feature/dashboard)</span> feat: aggiunta widget statistiche
+<span class="g">| * </span><span class="h">35bf56c</span> feat: aggiunta pagina dashboard
 <span class="g">|/  </span>
-<span class="g">* </span><span class="h">1db4b2a</span> <span class="rf">(feature/login)</span> feat: aggiunta validazione pagina login
-<span class="g">* </span><span class="h">a762a42</span> feat: aggiunta pagina login</div>
+<span class="g">* </span><span class="h">fb21692</span> <span class="rf">(feature/login)</span> feat: aggiunta validazione pagina login
+<span class="g">* </span><span class="h">7eeeb37</span> feat: aggiunta pagina login
+<span class="g">* </span><span class="h">c387ac1</span> <span class="ro">(origin/main, origin/dev, main)</span> primo commit</div>
   <div class="log-annotation">
     <strong>Riga per riga:</strong><br>
-    <code>*&nbsp;&nbsp; 21f79e7 (HEAD -&gt; dev)</code> — il commit di merge. <code>*&nbsp;&nbsp;</code> con tre spazi indica un merge commit (ha due genitori). <code>HEAD -&gt; dev</code> = sei qui ora.<br><br>
+    <code>*&nbsp;&nbsp; 08503e7 (HEAD -&gt; dev)</code> — il commit di merge. <code>*&nbsp;&nbsp;</code> con tre spazi indica un merge commit (ha due genitori). <code>HEAD -&gt; dev</code> = sei qui ora.<br><br>
     <code>|\</code> — i due branch si <strong>riuniscono</strong> qui. Da questo punto in giù la storia si divide in due binari paralleli.<br><br>
-    <code>| * 002101c (feature/dashboard)</code> — commit sul binario di destra, cioè feature/dashboard. Il <code>| *</code> significa "commit su un branch parallelo".<br><br>
-    <code>| * 6618858</code> — secondo commit sempre su feature/dashboard, ancora sul binario di destra.<br><br>
+    <code>| * eff6980 (feature/dashboard)</code> — commit sul binario di destra, cioè feature/dashboard. Il <code>| *</code> significa "commit su un branch parallelo".<br><br>
+    <code>| * 35bf56c</code> — secondo commit sempre su feature/dashboard, ancora sul binario di destra.<br><br>
     <code>|/</code> — i due binari si <strong>biforcano</strong> (verso il basso = verso il passato). È qui che è stato creato feature/dashboard.<br><br>
-    <code>* 1db4b2a (feature/login)</code> — il punto di partenza comune. Da qui i due branch si sono separati. Nota: feature/login punta allo stesso commit di dev perché era una fast-forward.
+    <code>* fb21692 (feature/login)</code> — il punto di partenza comune. Da qui i due branch si sono separati. Nota: <code>feature/login</code> punta allo stesso commit di dev perché era una fast-forward.<br><br>
+    <code>* c387ac1 (origin/main, origin/dev, main)</code> — il primo commit. I ref remoti sono ancora qui = nessun push fatto finora.
   </div>
 
   <div class="callout callout-tip">
@@ -472,6 +469,13 @@ git log --oneline --graph --all</code></pre>
       <tr><td class="part">origin/dev</td><td class="desc">Dove è il remoto — se diverso da dev, sono divergiti</td></tr>
     </tbody>
   </table>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Prima di passare alla Fase 2 — pusha!</div>
+    <p>Allinea il remoto con quello che hai fatto in locale:</p>
+    <pre style="margin-top:10px;"><code>git push origin dev</code></pre>
+    <p>Così <code>origin/dev</code> torna allineato a <code>dev</code> e il log nella prossima fase sarà coerente.</p>
+  </div>
 
   <div class="nav-row">
     <button class="nav-btn" onclick="showMod('init')">← Fase 0 — Setup</button>
