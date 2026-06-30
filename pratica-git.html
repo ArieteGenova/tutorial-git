@@ -588,6 +588,12 @@ git merge --no-ff feature/conflitto-theirs -X theirs -m "merge: conflitto risolt
     <p>Se usi <code>rebase</code> invece di <code>merge</code>, <code>ours</code> e <code>theirs</code> si <strong>invertono</strong>. Questo è approfondito nel Modulo 6 del tutorial.</p>
   </div>
 
+  <div class="callout callout-warn">
+    <div class="callout-label">Prima di passare alla Fase 3 — pusha!</div>
+    <p>Hai mergato in locale — allinea il remoto:</p>
+    <pre style="margin-top:10px;"><code>git push origin dev</code></pre>
+  </div>
+
   <div class="nav-row">
     <button class="nav-btn" onclick="showMod(0)">← Fase 1</button>
     <button class="nav-btn next" onclick="showMod(2)">Fase 3 — Remote &amp; PR →</button>
@@ -620,9 +626,10 @@ git push origin feature/navbar</code></pre>
 
   <hr class="divider" id="f3-fetch">
   <h2>3.2 — Fetch e allineamento</h2>
-  <p>Dopo aver completato la PR su Azure DevOps, il merge è avvenuto sul remoto ma il tuo locale non lo sa ancora.</p>
+  <p>Dopo aver completato la PR su Azure DevOps, il merge è avvenuto sul remoto ma il tuo locale non lo sa ancora. Prima di tutto torna su <code>dev</code>, poi scarica lo stato del remoto:</p>
 
-  <pre><code>git fetch origin
+  <pre><code>git switch dev
+git fetch origin
 git log --oneline --graph --all</code></pre>
 
   <h3>Log dopo fetch — prima del pull</h3>
@@ -647,8 +654,7 @@ git log --oneline --graph --all</code></pre>
     <code>*&nbsp;&nbsp; 31b5e56 (dev)</code> — qui sta <code>dev</code> <strong>locale</strong>. È rimasto indietro rispetto a <code>origin/dev</code> che è già a <code>9697c2c</code>. Questo è il segnale che devi fare <code>git pull</code>.
   </div>
 
-  <pre><code>git switch dev
-git pull origin dev
+  <pre><code>git pull origin dev
 git log --oneline --graph --all</code></pre>
 
   <h3>Log dopo il pull — allineato</h3>
@@ -660,9 +666,8 @@ git log --oneline --graph --all</code></pre>
 <span class="g">*   </span><span class="h">31b5e56</span> <span class="m">merge: conflitto risolto con theirs</span></div>
   <div class="log-annotation">
     <strong>Riga per riga:</strong><br>
-    <code>*&nbsp;&nbsp; 9697c2c (HEAD -&gt; dev, origin/dev)</code> — ora sia <code>dev</code> locale che <code>origin/dev</code> puntano allo stesso commit. <code>HEAD -&gt; dev</code> = sei su dev. Locale e remoto <strong>allineati</strong>.<br><br>
-    Confronta con il log precedente: prima c'era solo <code>(origin/dev)</code>, ora c'è <code>(HEAD -&gt; dev, origin/dev)</code>. Il pull ha spostato il puntatore locale in avanti.<br><br>
-    <code>| * d1094a0 (origin/feature/navbar, feature/navbar)</code> — feature/navbar non ha <code>HEAD -&gt;</code> perché sei passato su dev. Il branch esiste ancora ma non sei posizionato lì.
+    <code>*&nbsp;&nbsp; 9697c2c (HEAD -&gt; dev, origin/dev)</code> — confronta con il log precedente (post-fetch): prima c'era solo <code>(origin/dev)</code> qui, mentre <code>dev</code> locale era fermo a <code>31b5e56</code>. Il pull ha scaricato i commit dal remoto <strong>e</strong> spostato il puntatore locale in avanti. Ora <code>dev</code> e <code>origin/dev</code> puntano allo stesso commit — locale e remoto <strong>allineati</strong>.<br><br>
+    <code>| * d1094a0 (origin/feature/navbar, feature/navbar)</code> — feature/navbar non ha <code>HEAD -&gt;</code> perché sei passato su dev. Il branch esiste ancora in locale e sul remoto, ma non sei posizionato lì.
   </div>
 
   <div class="nav-row">
@@ -687,9 +692,10 @@ git log --oneline --graph --all</code></pre>
 
   <pre><code>git switch dev
 git switch -c feature/rebase-test
-# modifica un file, poi:
+# crea rebase1.txt, poi:
 git add .
 git commit -m "feat: aggiunta file rebase 1"
+# crea rebase2.txt, poi:
 git add .
 git commit -m "feat: aggiunta file rebase 2"
 git switch dev
@@ -735,9 +741,19 @@ git log --oneline --graph --all</code></pre>
   <p>Unisci più commit in uno solo prima di pushare — utile per pulire una serie di commit "sporchi".</p>
 
   <pre><code># aggiungi un terzo commit a feature/rebase-test
+# crea rebase3.txt, poi:
 git add .
 git commit -m "feat: aggiunta file rebase 3"
 git rebase -i HEAD~3</code></pre>
+
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">rebase</td><td class="desc">Riscrivi la storia del branch spostando o modificando commit</td></tr>
+      <tr><td class="part">-i</td><td class="desc">Modalità interattiva — si apre un editor dove scegli cosa fare con ogni commit</td></tr>
+      <tr><td class="part">HEAD~3</td><td class="desc">Lavora sugli ultimi 3 commit a partire da <code>HEAD</code>. <code>~3</code> significa "3 commit indietro"</td></tr>
+    </tbody>
+  </table>
 
   <p>Si apre l'editor. Modifica <code>pick</code> in <code>s</code> (squash) per i commit 2 e 3:</p>
   <pre><code>pick dd361f6 feat: aggiunta file rebase 1
@@ -778,6 +794,79 @@ s b2008f4 feat: aggiunta file rebase 3</code></pre>
   <div class="callout callout-info">
     <div class="callout-label">Perché --force-with-lease e non --force?</div>
     <p><code>--force</code> sovrascrive il remoto incondizionatamente. <code>--force-with-lease</code> sovrascrive <strong>solo se nessun altro ha pushato nel frattempo</strong> — se qualcuno ha aggiunto commit dopo il tuo ultimo fetch, il push viene rifiutato e non perdi il loro lavoro.</p>
+  </div>
+
+  <h3>Cosa succede se qualcuno ha pushato nel frattempo</h3>
+  <p>In questo caso il push viene <strong>rifiutato</strong> invece di sovrascrivere alla cieca — è proprio questo lo scopo di <code>--force-with-lease</code>:</p>
+
+  <pre><code>! [rejected]        feature/rebase-test -> feature/rebase-test (stale info)
+error: failed to push some refs to '...'</code></pre>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Ma se il branch è "mio", quando succede davvero?</div>
+    <p>Se il branch è esclusivamente tuo e lo usi da una sola macchina, questo scenario non dovrebbe verificarsi mai. Capita in casi come:</p>
+    <ul style="margin:8px 0 0 20px; line-height:1.8;">
+      <li>Lavori sullo stesso branch da due macchine (laptop + PC fisso) e hai pushato da una dimenticandotene</li>
+      <li>Un collega ha fatto checkout del tuo branch per testare qualcosa e ci ha pushato sopra una correzione</li>
+      <li>Una pipeline CI/CD committa automaticamente sul branch (es. lint-fix, formattazione)</li>
+    </ul>
+    <p style="margin-top:8px;">In sintesi: succede quando il branch non è <strong>fisicamente sotto il tuo controllo esclusivo</strong> in quel momento, anche se nominalmente è "tuo".</p>
+  </div>
+
+  <p>Da qui due strade:</p>
+
+  <table class="anatomy">
+    <thead><tr><th>Situazione</th><th>Cosa fare</th></tr></thead>
+    <tbody>
+      <tr><td class="part">Push esterno recuperabile (altra tua macchina, piccola correzione)</td><td class="desc">Fai <code>git fetch origin</code>, controlla cosa c'è di nuovo con <code>git log origin/feature/rebase-test --oneline</code>, eventualmente recupera i commit nuovi con cherry-pick, poi ripeti <code>push --force-with-lease</code></td></tr>
+      <tr><td class="part">Branch realmente condiviso, altri ci lavorano sopra attivamente</td><td class="desc">Meglio <strong>non forzare</strong> — coordina prima con chi ha pushato. Riscrivere history che altri hanno già pullato genera conflitti quando loro ripullano</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Esempio completo — push esterno recuperabile</h3>
+  <p>Riprendiamo lo scenario di prima: hai squashato i 3 commit in locale (<code>f9413bd</code>), ma nel frattempo dall'altra tua macchina avevi già pushato una piccola correzione su <code>feature/rebase-test</code> che ora sul remoto non hai.</p>
+
+  <pre><code>git push --force-with-lease origin feature/rebase-test</code></pre>
+  <pre><code>! [rejected]        feature/rebase-test -> feature/rebase-test (stale info)
+error: failed to push some refs to '...'</code></pre>
+
+  <p>Primo passo, scarica lo stato aggiornato del remoto senza toccare il locale:</p>
+  <pre><code>git fetch origin</code></pre>
+
+  <p>Guarda cosa c'è di nuovo che il tuo locale non ha:</p>
+  <pre><code>git log origin/feature/rebase-test --oneline</code></pre>
+  <pre><code>a1b2c3d (origin/feature/rebase-test) fix: corretto typo in rebase3.txt
+1721453 feat: aggiunta file rebase 2
+dd361f6 feat: aggiunta file rebase 1</code></pre>
+
+  <p>Il commit <code>a1b2c3d</code> è la correzione fatta dall'altra macchina — non l'hai mai scaricata. Lo recuperi con cherry-pick sopra la tua history già squashata:</p>
+  <pre><code>git cherry-pick a1b2c3d</code></pre>
+
+  <p>Se non ci sono conflitti, ora il tuo locale ha sia lo squash che la correzione. Verifica con il log:</p>
+  <pre><code>git log --oneline</code></pre>
+  <pre><code>e4f5a6b (HEAD -> feature/rebase-test) fix: corretto typo in rebase3.txt
+f9413bd feat: aggiunta file rebase completo
+b3aa22e (dev) feat: commit su dev nel frattempo</code></pre>
+
+  <p>A questo punto puoi ripushare con sicurezza — il tuo locale contiene tutto, sia la tua history riscritta che la correzione che mancava:</p>
+  <pre><code>git push --force-with-lease origin feature/rebase-test</code></pre>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Perché cherry-pick e non semplicemente un nuovo pull/merge</div>
+    <p>Un <code>merge</code> qui ricreerebbe la biforcazione che il rebase aveva eliminato. Il cherry-pick prende <strong>solo</strong> il contenuto del commit che ti serve e lo applica in cima alla tua history lineare, mantenendo tutto pulito e pronto per un force push coerente.</p>
+  </div>
+
+  <div class="callout callout-warn">
+
+    <div class="callout-label">Regola pratica</div>
+    <p>Rebase interattivo e force push vanno bene su feature branch <strong>personali</strong>, non condivisi (o condivisi solo con te). Se altri ci stanno lavorando sopra, meglio evitare lo squash o farlo solo dopo essersi accordati con loro.</p>
+  </div>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Prima di passare alla Fase 5 — verifica lo stato</div>
+    <p>Dopo il rebase e il push forzato, assicurati che <code>dev</code> locale sia aggiornato con eventuali commit avanzati durante l'esercizio:</p>
+    <pre style="margin-top:10px;"><code>git switch dev
+git push origin dev</code></pre>
   </div>
 
   <div class="nav-row">
@@ -838,11 +927,31 @@ git status   # Changes to be committed
 git log --oneline   # A, B, C spariti</code></pre>
   <p>Le modifiche sono ancora in staging area — pronte per un nuovo commit senza fare <code>git add</code>.</p>
 
+  <div class="callout callout-info">
+    <div class="callout-label">Prima di provare --mixed, ricrea i 3 commit</div>
+    <p>Dopo lo <code>--soft</code> i commit A, B, C non esistono più — sei tornato a un'unica modifica in staging. Per provare <code>--mixed</code> partendo dalla stessa situazione, prima ricommitta:</p>
+    <pre style="margin-top:10px;"><code>git commit -m "feat: commit A"
+# modifica file, poi:
+git add . && git commit -m "feat: commit B"
+# modifica file, poi:
+git add . && git commit -m "feat: commit C"</code></pre>
+  </div>
+
   <h3>--mixed: annulla commit, mantiene working dir</h3>
   <pre><code>git reset --mixed HEAD~3
 git status   # Changes not staged for commit
 git log --oneline   # A, B, C spariti</code></pre>
   <p>Le modifiche sono ancora sul disco ma fuori dalla staging area — devi fare <code>git add</code> prima di committare.</p>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Prima di provare --hard, ricrea di nuovo i 3 commit</div>
+    <p>Stesso discorso: dopo <code>--mixed</code> i commit A, B, C sono già annullati. Ripeti la sequenza per riportarti al punto di partenza prima di provare <code>--hard</code>:</p>
+    <pre style="margin-top:10px;"><code>git add . && git commit -m "feat: commit A"
+# modifica file, poi:
+git add . && git commit -m "feat: commit B"
+# modifica file, poi:
+git add . && git commit -m "feat: commit C"</code></pre>
+  </div>
 
   <h3>--hard: annulla commit e cancella tutto</h3>
   <pre><code>git reset --hard HEAD~3
@@ -890,6 +999,30 @@ git log --oneline   # A, B, C spariti</code></pre>
     Per recuperare il commit C: <code>git reset --hard 96079ec</code>. Per recuperare solo uno dei commit senza spostare HEAD: <code>git cherry-pick 161e208</code>.
   </div>
 
+  <h3>Come recuperare un commit "perduto" — esempio completo</h3>
+  <p>Hai fatto <code>git reset --hard HEAD~3</code> per sbaglio e ti accorgi che il commit C conteneva del lavoro che ti serviva. Procedura:</p>
+
+  <pre><code>git reflog</code></pre>
+  <p>Trovi nel reflog l'hash del commit che vuoi recuperare (qui <code>96079ec</code>, il commit C). Poi hai due strade, a seconda di cosa vuoi:</p>
+
+  <table class="anatomy">
+    <thead><tr><th>Obiettivo</th><th>Comando</th></tr></thead>
+    <tbody>
+      <tr><td class="part">Voglio tornare esattamente a quel punto, perdendo eventuali commit fatti dopo</td><td class="desc"><code>git reset --hard 96079ec</code></td></tr>
+      <tr><td class="part">Voglio solo recuperare quel commit specifico senza toccare la HEAD attuale</td><td class="desc"><code>git cherry-pick 96079ec</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Il reflog è solo locale</div>
+    <p>Il reflog non viene mai pushato su Azure DevOps — vive solo nella tua copia locale del repo, e per default Git lo conserva per 90 giorni. Se hai bisogno di recuperare qualcosa, fallo prima che il garbage collector di Git lo elimini definitivamente.</p>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-label">reset --hard vs cherry-pick: quale scegliere?</div>
+    <p>Usa <code>reset --hard &lt;hash&gt;</code> quando il commit perduto è l'ultimo di una sequenza che vuoi recuperare per intero (torni indietro nel tempo). Usa <code>cherry-pick &lt;hash&gt;</code> quando vuoi solo <strong>quel</strong> commit specifico, magari in mezzo ad altri che nel frattempo hai già rifatto correttamente — è più chirurgico e non tocca il resto della tua history attuale.</p>
+  </div>
+
   <p>Per tornare pulito a <code>origin/dev</code>:</p>
   <pre><code>git reset --hard origin/dev</code></pre>
 
@@ -914,6 +1047,12 @@ git status   # Changes not staged for commit</code></pre>
       <tr><td class="part">git restore --staged &lt;file&gt;</td><td class="desc">Toglie dalla staging area, mantiene le modifiche sul disco</td></tr>
     </tbody>
   </table>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Prima di passare alla Fase 6 — pusha!</div>
+    <p>Se hai fatto modifiche su <code>dev</code> durante gli esercizi di questa fase, allinea il remoto:</p>
+    <pre style="margin-top:10px;"><code>git push origin dev</code></pre>
+  </div>
 
   <div class="nav-row">
     <button class="nav-btn" onclick="showMod(3)">← Fase 4</button>
@@ -960,6 +1099,12 @@ git log --oneline</code></pre>
     <code>* df53ee5 (origin/dev)</code> — il commit precedente di dev. <code>origin/dev</code> è rimasto qui = non hai ancora pushato.<br><br>
     <code>*&nbsp;&nbsp; 9697c2c</code> — la PR 2. Più vecchio, invariato.<br><br>
     <strong>Cosa NON vedi:</strong> i commit A (<code>cb59bf6</code>) e C (<code>58cea56</code>) di feature/cherry-test. Non sono stati toccati — il cherry-pick ha preso <strong>solo</strong> il commit B e lo ha replicato su dev.
+  </div>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Pusha prima di proseguire</div>
+    <p>Il cherry-pick ha creato un nuovo commit solo in locale — allinea il remoto prima di passare all'esempio successivo:</p>
+    <pre style="margin-top:10px;"><code>git push origin dev</code></pre>
   </div>
 
   <hr class="divider" id="f6-conflict">
