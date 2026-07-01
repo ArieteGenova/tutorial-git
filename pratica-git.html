@@ -174,6 +174,7 @@
     <div class="mod-sections">
       <a class="sec-link" href="#" onclick="showAndScroll(2,'f3-push');return false;">3.1 — Push branch e apertura PR</a>
       <a class="sec-link" href="#" onclick="showAndScroll(2,'f3-fetch');return false;">3.2 — Fetch e allineamento</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(2,'f3-pullrebase');return false;">3.3 — git pull --rebase</a>
     </div>
   </div>
 
@@ -187,6 +188,7 @@
       <a class="sec-link" href="#" onclick="showAndScroll(3,'f4-base');return false;">4.1 — Rebase base</a>
       <a class="sec-link" href="#" onclick="showAndScroll(3,'f4-interactive');return false;">4.2 — Interactive rebase (squash)</a>
       <a class="sec-link" href="#" onclick="showAndScroll(3,'f4-force');return false;">4.3 — --force-with-lease</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(3,'f4-scenarios');return false;">4.4 — 3 scenari --force-with-lease</a>
     </div>
   </div>
 
@@ -201,6 +203,8 @@
       <a class="sec-link" href="#" onclick="showAndScroll(4,'f5-reset');return false;">5.2 — git reset (soft/mixed/hard)</a>
       <a class="sec-link" href="#" onclick="showAndScroll(4,'f5-reflog');return false;">5.3 — git reflog</a>
       <a class="sec-link" href="#" onclick="showAndScroll(4,'f5-restore');return false;">5.4 — git restore</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(4,'f5-restore-source');return false;">5.5 — git restore --source</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(4,'f5-disaster');return false;">5.6 — Disaster recovery completo</a>
     </div>
   </div>
 
@@ -670,6 +674,105 @@ git log --oneline --graph --all</code></pre>
     <code>| * d1094a0 (origin/feature/navbar, feature/navbar)</code> — feature/navbar non ha <code>HEAD -&gt;</code> perché sei passato su dev. Il branch esiste ancora in locale e sul remoto, ma non sei posizionato lì.
   </div>
 
+  <hr class="divider" id="f3-pullrebase">
+  <h2>3.3 — git pull --rebase</h2>
+  <p>Hai già visto <code>git pull origin dev</code> che fa un merge implicito. La variante <code>--rebase</code> fa la stessa cosa ma invece di creare un merge commit, <strong>riapplica i tuoi commit locali sopra quelli scaricati dal remoto</strong>, mantenendo la history lineare.</p>
+
+  <pre><code># Simula il caso: sei su dev, hai un commit locale non pushato
+# e nel frattempo origin/dev è avanzato
+git switch dev
+# crea pullrebase.txt, poi:
+git add .
+git commit -m "feat: commit locale non pushato"
+
+# ora allinea con il remoto usando --rebase invece di merge
+git pull --rebase origin dev</code></pre>
+
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">pull</td><td class="desc">Scarica i commit dal remoto e li integra in locale</td></tr>
+      <tr><td class="part">--rebase</td><td class="desc">Invece di creare un merge commit, riapplica i tuoi commit locali <em>sopra</em> quelli appena scaricati</td></tr>
+      <tr><td class="part">origin dev</td><td class="desc">Il remote e il branch da cui scaricare</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Confronto visivo: pull normale vs pull --rebase</h3>
+  <p>Supponiamo che <code>origin/dev</code> abbia avanzato di un commit (<code>X</code>) e tu in locale hai un commit (<code>Y</code>) non ancora pushato:</p>
+
+  <table class="anatomy">
+    <thead><tr><th>Operazione</th><th>Risultato nel log</th></tr></thead>
+    <tbody>
+      <tr><td class="part">git pull origin dev</td><td class="desc">Crea un merge commit M con due genitori (X e Y) — la history si biforca e si ricongiunge. Cherry-pick successivi diventano più complessi.</td></tr>
+      <tr><td class="part">git pull --rebase origin dev</td><td class="desc">Sposta Y sopra X — la history rimane lineare, come se avessi committato Y dopo X. Cherry-pick rimane semplice e chirurgico.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Confronto con git rebase origin/dev</div>
+    <p><code>git pull --rebase origin dev</code> è equivalente a:</p>
+    <pre style="margin-top:8px;"><code>git fetch origin
+git rebase origin/dev</code></pre>
+    <p>La differenza è solo pratica: <code>pull --rebase</code> fa entrambi i passi in uno. Il risultato finale è identico.</p>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-label">E -X ours / -X theirs?</div>
+    <p>Le strategie <code>-X ours</code> e <code>-X theirs</code> che hai visto nella Fase 2 si applicano solo al <strong>merge</strong>, non al rebase. Con <code>pull --rebase</code> non puoi usarle direttamente — in caso di conflitto durante il rebase devi risolverlo manualmente file per file e poi:</p>
+    <pre style="margin-top:8px;"><code>git add .
+git rebase --continue</code></pre>
+    <p>Oppure, se vuoi abortire e tornare allo stato precedente:</p>
+    <pre style="margin-top:8px;"><code>git rebase --abort</code></pre>
+  </div>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Attenzione: ours e theirs si invertono nel rebase</div>
+    <p>Durante un rebase, i ruoli si invertono rispetto al merge: <strong>ours</strong> = i commit del branch su cui stai rebasando (cioè <code>origin/dev</code>), <strong>theirs</strong> = i tuoi commit locali che vengono riapplicati. L'opposto di quanto ti aspetteresti. Questo è approfondito nel Modulo 6 del tutorial principale.</p>
+  </div>
+
+  <h3>Log reale ottenuto</h3>
+  <p>Prima del pull --rebase — il disallineamento:</p>
+  <div class="git-log"><span class="g">* </span><span class="h">45e4887</span> <span class="r">(HEAD -&gt; dev)</span> prova per git pull --rebase
+<span class="g">* </span><span class="h">7851a8c</span> <span class="ro">(origin/dev)</span> Updated login.txt per git pull --rebase</div>
+  <div class="log-annotation">
+    <code>45e4887 (HEAD -&gt; dev)</code> — il commit locale non pushato. <code>HEAD -&gt; dev</code> = sei qui, ma <code>origin/dev</code> non c'è accanto = il remoto è fermo a un commit diverso.<br><br>
+    <code>7851a8c (origin/dev)</code> — il commit fatto direttamente dalla UI di Azure DevOps, che simula il push di un collega. I due branch sono <strong>divergiti</strong>: ognuno ha un commit che l'altro non ha.
+  </div>
+
+  <p>Dopo <code>git pull --rebase origin dev</code>:</p>
+  <div class="git-log"><span class="g">* </span><span class="h">45e4887</span> <span class="r">(HEAD -&gt; dev)</span> prova per git pull --rebase
+<span class="g">* </span><span class="h">7851a8c</span> <span class="ro">(origin/dev)</span> Updated login.txt per git pull --rebase</div>
+  <div class="log-annotation">
+    History <strong>lineare</strong> — nessuna biforcazione, nessun merge commit. Il commit locale (<code>45e4887</code>) è stato riapplicato sopra quello di origin (<code>7851a8c</code>) come se fosse sempre stato lì dopo.<br><br>
+    <code>origin/dev</code> è fermo a <code>7851a8c</code> = non hai ancora pushato. Quando farai <code>git push origin dev</code>, i due puntatori si allineeranno sullo stesso commit.
+  </div>
+
+  <p>Confronta con come sarebbe apparso con un <code>git pull</code> normale:</p>
+  <div class="git-log"><span class="g">*   </span><span class="h">xxxxxxx</span> <span class="r">(HEAD -&gt; dev)</span> <span class="m">Merge branch 'dev' of https://...</span>
+<span class="g">|\  </span>
+<span class="g">| * </span><span class="h">7851a8c</span> <span class="ro">(origin/dev)</span> Updated login.txt per git pull --rebase
+<span class="g">* | </span><span class="h">45e4887</span> prova per git pull --rebase
+<span class="g">|/  </span></div>
+  <div class="log-annotation">
+    Quella biforcazione non c'è con <code>--rebase</code>. Un merge commit in più, due genitori, history non lineare — tutto questo complica i cherry-pick successivi.
+  </div>
+
+  <h3>Quando usare pull --rebase invece di pull normale</h3>
+  <table class="anatomy">
+    <thead><tr><th>Situazione</th><th>Preferisci</th></tr></thead>
+    <tbody>
+      <tr><td class="part">Vuoi history lineare, cherry-pick semplici</td><td class="desc"><code>git pull --rebase</code> — il tuo caso tipico nel workflow del team</td></tr>
+      <tr><td class="part">Hai solo commit locali non ancora pushati</td><td class="desc"><code>git pull --rebase</code> — situazione ideale, nessun rischio</td></tr>
+      <tr><td class="part">Vuoi tracciare esplicitamente quando hai integrato il remoto</td><td class="desc"><code>git pull</code> — il merge commit documenta il momento dell'integrazione</td></tr>
+      <tr><td class="part">Hai commit già pushati e condivisi con altri</td><td class="desc"><code>git pull</code> — il rebase riscrive gli hash, pericoloso su branch condivisi</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">Regola pratica per il tuo team</div>
+    <p>Nel vostro workflow con cherry-pick verso <code>integration</code>, la history lineare è una priorità — <code>git pull --rebase</code> dovrebbe essere la scelta di default quando aggiorni un feature branch o <code>dev</code>. Usa il pull normale solo quando devi tracciare esplicitamente un'integrazione o quando il branch è già condiviso e altri ci hanno già lavorato sopra.</p>
+  </div>
+
   <div class="nav-row">
     <button class="nav-btn" onclick="showMod(1)">← Fase 2</button>
     <button class="nav-btn next" onclick="showMod(3)">Fase 4 — Rebase →</button>
@@ -869,6 +972,45 @@ b3aa22e (dev) feat: commit su dev nel frattempo</code></pre>
 git push origin dev</code></pre>
   </div>
 
+  <hr class="divider" id="f4-scenarios">
+  <h2>4.4 — I 3 scenari di --force-with-lease</h2>
+  <p>Hai già visto il comportamento base di <code>--force-with-lease</code>. Ecco i tre scenari concreti in cui lo incontri, con comportamento e risposta diversa.</p>
+
+  <h3>Scenario 1 — Nessuno ha pushato: il caso normale</h3>
+  <p>Hai fatto rebase/squash in locale e il remoto è fermo esattamente dove lo avevi lasciato tu:</p>
+  <pre><code>git push --force-with-lease origin feature/mio-branch</code></pre>
+  <pre><code>Branch 'feature/mio-branch' set up to track remote branch 'feature/mio-branch' from 'origin'.
+To https://...
+ + a1b2c3d...f9413bd feature/mio-branch -> feature/mio-branch (forced update)</code></pre>
+  <p>Il push va a buon fine — Git verifica che <code>origin/feature/mio-branch</code> sia esattamente dove te lo aspetti (nessun commit aggiunto da altri) e sovrascrive.</p>
+
+  <h3>Scenario 2 — Qualcuno ha pushato: push rifiutato</h3>
+  <p>Nel frattempo qualcun altro (o tu da un'altra macchina) ha aggiunto commit al branch remoto:</p>
+  <pre><code>git push --force-with-lease origin feature/mio-branch</code></pre>
+  <pre><code>! [rejected]        feature/mio-branch -> feature/mio-branch (stale info)
+error: failed to push some refs to '...'</code></pre>
+  <p>Il push viene bloccato. Procedi come visto nella sezione 4.3: fetch → analisi → cherry-pick dei commit mancanti → push di nuovo.</p>
+
+  <h3>Scenario 3 — Hai fatto fetch ma non pull: attenzione</h3>
+  <p>Questo è il caso più subdolo. Hai fatto <code>git fetch origin</code> (quindi Git sa che ci sono nuovi commit sul remoto) ma non li hai integrati. In questo caso <code>--force-with-lease</code> <strong>non ti protegge</strong> — sa che ci sono commit nuovi ma li sovrascrive comunque perché tecnicamente il tuo riferimento locale a <code>origin/feature/mio-branch</code> è aggiornato:</p>
+  <pre><code>git fetch origin
+# NON fai git pull né git rebase
+git push --force-with-lease origin feature/mio-branch  # ⚠️ passa lo stesso!</code></pre>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">--force-with-lease non è infallibile</div>
+    <p>Protegge solo se non hai ancora scaricato i nuovi commit con <code>fetch</code>. Se hai fatto fetch e poi forzi il push, i commit del remoto vengono sovrascritti senza avvisi. Per questo motivo, dopo un fetch, controlla sempre <code>git log origin/feature/mio-branch --oneline</code> prima di forzare.</p>
+  </div>
+
+  <table class="anatomy">
+    <thead><tr><th>Situazione</th><th>Comportamento --force-with-lease</th></tr></thead>
+    <tbody>
+      <tr><td class="part">Nessuno ha pushato</td><td class="desc">✅ Push riuscito — sovrascrive il remoto senza problemi</td></tr>
+      <tr><td class="part">Qualcuno ha pushato, non hai fatto fetch</td><td class="desc">🛑 Push rifiutato — ti protegge dal sovrascrivere il lavoro altrui</td></tr>
+      <tr><td class="part">Qualcuno ha pushato, hai già fatto fetch</td><td class="desc">⚠️ Push riuscito lo stesso — il lease è soddisfatto, ma perdi i commit remoti</td></tr>
+    </tbody>
+  </table>
+
   <div class="nav-row">
     <button class="nav-btn" onclick="showMod(2)">← Fase 3</button>
     <button class="nav-btn next" onclick="showMod(4)">Fase 5 — Reset/Revert/Restore →</button>
@@ -1048,6 +1190,125 @@ git status   # Changes not staged for commit</code></pre>
     </tbody>
   </table>
 
+  <hr class="divider" id="f5-restore-source">
+  <h2>5.5 — git restore --source</h2>
+  <p>Mentre <code>git restore</code> base scarta le modifiche ripristinando il file all'ultimo commit, <code>--source</code> permette di recuperare la versione di un file da <strong>un commit specifico</strong>, senza toccare il resto della history.</p>
+
+  <pre><code># Recupera dashboard.txt com'era 3 commit fa
+git restore --source HEAD~3 dashboard.txt
+
+# Recupera dashboard.txt da un commit specifico tramite hash
+git restore --source a1b2c3d dashboard.txt
+
+# Recupera dashboard.txt da un altro branch
+git restore --source origin/dev dashboard.txt</code></pre>
+
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">restore</td><td class="desc">Ripristina il contenuto di un file nel working directory</td></tr>
+      <tr><td class="part">--source</td><td class="desc">Specifica da quale commit (o branch) prendere la versione del file</td></tr>
+      <tr><td class="part">HEAD~3</td><td class="desc">3 commit indietro rispetto a HEAD — puoi usare qualsiasi hash o riferimento valido</td></tr>
+      <tr><td class="part">dashboard.txt</td><td class="desc">Il file da ripristinare — solo questo file viene toccato, tutto il resto rimane invariato</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Il file torna in working directory, non committato</div>
+    <p>Dopo <code>git restore --source</code> il file viene modificato sul disco ma <strong>non</strong> messo in staging. Se vuoi committarlo devi fare <code>git add</code> + <code>git commit</code> esplicitamente. Questo ti dà la possibilità di controllare cosa è cambiato prima di committare.</p>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Differenza con git checkout -- file (deprecato)</div>
+    <p>Il vecchio equivalente era <code>git checkout &lt;hash&gt; -- nomefile.txt</code>. <code>git restore --source</code> è il comando moderno che lo sostituisce — più esplicito e meno ambiguo.</p>
+  </div>
+
+  <h3>Caso pratico: ho sovrascritto un file per sbaglio</h3>
+  <pre><code># Hai sovrascritto dashboard.txt con contenuto sbagliato e già committato
+# Prima trova il commit dove era corretto
+git log --oneline -- dashboard.txt
+
+# Poi recupera quella versione
+git restore --source &lt;hash-commit-corretto&gt; dashboard.txt
+git add dashboard.txt
+git commit -m "fix: ripristinato dashboard.txt alla versione corretta"</code></pre>
+
+  <h3>Caso pratico: voglio recuperare un pezzo di codice da una versione precedente</h3>
+  <p>Il caso più comune in assoluto — non vuoi fare rollback di niente, vuoi solo <strong>sbirciare</strong> una versione precedente del file, copiare quello che ti serve, e richiudere.</p>
+
+  <pre><code># Step 1 — porta sul disco la versione di 3 commit fa
+git restore --source HEAD~3 dashboard.txt
+
+# Step 2 — apri il file in IntelliJ, copia il pezzo di codice che ti serve
+# (non salvare nulla, lavora solo con copia/incolla)
+
+# Step 3 — ripristina la versione più recente del file
+git restore dashboard.txt
+
+# Step 4 — incolla il pezzo recuperato nella versione attuale e committa
+git add dashboard.txt
+git commit -m "fix: recuperato metodo X dalla versione di HEAD~3"</code></pre>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Lo Step 3 è fondamentale</div>
+    <p><code>git restore dashboard.txt</code> senza <code>--source</code> riporta il file all'ultimo commit — cioè la versione più recente. Se salti questo step e modifichi direttamente il file "vecchio" rischi di perdere tutto il lavoro fatto nei 3 commit intermedi. Prima copi, poi ripristini, poi incolli.</p>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-label">In alternativa: apri il file vecchio in una seconda finestra</div>
+    <p>In IntelliJ puoi anche usare <strong>File → Open → New Window</strong> per aprire il progetto in una seconda istanza dopo aver fatto il restore, così hai le due versioni affiancate senza rischio di sovrascrivere nulla per sbaglio.</p>
+  </div>
+
+  <hr class="divider" id="f5-disaster">
+  <h2>5.6 — Disaster recovery completo col reflog</h2>
+  <p>Scenario peggiore: hai fatto <code>git reset --hard</code> su <code>dev</code> perdendo più commit, oppure hai fatto un rebase andato male. Il reflog è la tua ultima ancora di salvezza.</p>
+
+  <h3>Procedura completa</h3>
+  <pre><code># Step 1: apri il reflog
+git reflog</code></pre>
+  <p>Leggi l'output e identifica il momento <em>prima</em> del disastro. Ogni riga ha la forma:</p>
+  <pre><code>&lt;hash&gt; HEAD@{N}: &lt;operazione&gt;: &lt;descrizione&gt;</code></pre>
+  <p>Cerca l'ultima riga che precede l'operazione che ha causato il problema (es. <code>reset: moving to HEAD~5</code> o <code>rebase (start)</code>).</p>
+
+  <pre><code># Step 2: verifica che l'hash trovato sia quello giusto
+git show &lt;hash&gt;
+# oppure per una vista più leggibile
+git log --oneline &lt;hash&gt;</code></pre>
+
+  <pre><code># Step 3a: se vuoi tornare esattamente a quel punto (perdi tutto quello che hai fatto dopo)
+git reset --hard &lt;hash&gt;
+
+# Step 3b: se vuoi creare un nuovo branch da quel punto (più sicuro — non tocchi dev)
+git switch -c recovery/dev-backup &lt;hash&gt;</code></pre>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">Preferisci sempre Step 3b in caso di dubbio</div>
+    <p>Creare un branch di recovery ti permette di confrontare la situazione prima e dopo il disastro senza rischiare di peggiorare le cose. Una volta verificato che il branch di recovery contiene tutto quello che ti serve, puoi fare il reset su <code>dev</code> con più tranquillità.</p>
+  </div>
+
+  <pre><code># Step 4: se hai recuperato su un branch di recovery, riporta dev lì
+git switch dev
+git reset --hard recovery/dev-backup
+
+# Step 5: pusha con force-with-lease per allineare il remoto
+git push --force-with-lease origin dev</code></pre>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">force-with-lease su dev è una cosa seria</div>
+    <p>Se altri hanno già pullato da <code>dev</code> nel frattempo, dovranno fare un <code>git pull --force</code> o un reset per allinearsi alla nuova history. Coordina sempre con il team prima di forzare su branch condivisi come <code>dev</code>.</p>
+  </div>
+
+  <h3>Riepilogo: quando usare cosa</h3>
+  <table class="anatomy">
+    <thead><tr><th>Situazione</th><th>Comando</th></tr></thead>
+    <tbody>
+      <tr><td class="part">Hai perso commit con reset --hard</td><td class="desc"><code>git reflog</code> → <code>git reset --hard &lt;hash&gt;</code></td></tr>
+      <tr><td class="part">Rebase andato male, vuoi tornare indietro</td><td class="desc"><code>git reflog</code> → cerca <code>rebase (start)</code> → <code>git reset --hard &lt;hash&gt;</code></td></tr>
+      <tr><td class="part">Vuoi recuperare senza rischiare di peggiorare</td><td class="desc"><code>git switch -c recovery/backup &lt;hash&gt;</code> poi decidi</td></tr>
+      <tr><td class="part">Hai bisogno di un solo file da un commit perduto</td><td class="desc"><code>git restore --source &lt;hash&gt; nomefile.txt</code></td></tr>
+    </tbody>
+  </table>
+
   <div class="callout callout-warn">
     <div class="callout-label">Prima di passare alla Fase 6 — pusha!</div>
     <p>Se hai fatto modifiche su <code>dev</code> durante gli esercizi di questa fase, allinea il remoto:</p>
@@ -1200,8 +1461,8 @@ git push origin dev</code></pre>
   </table>
 
   <div class="callout callout-info">
-    <div class="callout-label">Argomenti da approfondire</div>
-    <p>Questi argomenti sono nel tutorial ma non sono stati toccati in questa sessione pratica: <strong>git pull --rebase</strong>, <strong>git restore --source</strong> (recuperare un file da un commit specifico), <strong>disaster recovery completo col reflog</strong>, <strong>i 3 scenari di --force-with-lease</strong>.</p>
+    <div class="callout-label">Tutto coperto!</div>
+    <p>Tutti gli argomenti avanzati sono ora inclusi nella pratica: <strong>git pull --rebase</strong> (Fase 3.3), <strong>git restore --source</strong> (Fase 5.5), <strong>disaster recovery completo col reflog</strong> (Fase 5.6), <strong>i 3 scenari di --force-with-lease</strong> (Fase 4.4).</p>
   </div>
 
   <div class="nav-row">
