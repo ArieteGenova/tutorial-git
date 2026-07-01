@@ -143,10 +143,96 @@
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* TABLE SCROLL WRAPPER (usato anche su desktop, invisibile se non serve) */
+  .table-scroll { overflow-x: auto; margin: 16px 0 24px; }
+  .table-scroll .anatomy { margin: 0; }
+
+  /* MOBILE TOPBAR (nascosto su desktop) */
+  .mobile-topbar { display: none; }
+  .sidebar-overlay { display: none; }
+
+  /* RESPONSIVE / MOBILE */
+  @media (max-width: 900px) {
+    .mobile-topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+    }
+    .hamburger-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      font-size: 18px;
+      line-height: 1;
+    }
+    .mobile-topbar-title { font-size: 13px; font-weight: 600; color: var(--text); }
+
+    .shell { display: block; }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 82vw;
+      max-width: 320px;
+      min-width: 0;
+      height: 100vh;
+      z-index: 40;
+      transform: translateX(-100%);
+      transition: transform .25s ease;
+      box-shadow: 2px 0 20px rgba(0,0,0,.5);
+    }
+    .sidebar.open { transform: translateX(0); }
+
+    .sidebar-overlay.open {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 35;
+    }
+
+    .main { padding: 24px 18px 48px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    .page-sub { font-size: 14px; margin-bottom: 24px; padding-bottom: 16px; }
+    h2 { font-size: 16px; }
+    pre { padding: 12px 14px; font-size: 12px; }
+    .diagram { padding: 14px; font-size: 11px; }
+    .nav-row { flex-wrap: wrap; }
+    .coming-soon { padding: 28px 20px; }
+    [style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+  }
+
+  @media (max-width: 480px) {
+    .main { padding: 20px 14px 40px; }
+    h1 { font-size: 20px; }
+  }
 </style>
 <!-- Made by Marco N. -->
 <body>
 <div class="shell">
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<div class="mobile-topbar">
+  <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Apri menu">☰</button>
+  <div class="mobile-topbar-title">🥋 Tutorial Git</div>
+</div>
 
 <!-- SIDEBAR -->
 <nav class="sidebar">
@@ -5650,6 +5736,15 @@ mvn test -q
 </div>
 
 <script>
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
 function showMod(n) {
   // Nascondi tutte le pagine
   document.querySelectorAll('.mod-page').forEach(p => p.classList.remove('visible'));
@@ -5682,6 +5777,7 @@ function showMod(n) {
   }
 
   window.scrollTo(0, 0);
+  closeSidebar();
 }
 
 function show(n) {
@@ -5700,6 +5796,15 @@ function showAndScroll(n, sectionId) {
 // Al caricamento mostra il Modulo 1
 document.addEventListener('DOMContentLoaded', () => {
   showMod(0);
+
+  // Avvolge ogni tabella .anatomy in un contenitore scrollabile orizzontalmente (utile su mobile)
+  document.querySelectorAll('.anatomy').forEach(t => {
+    if (t.parentElement.classList.contains('table-scroll')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'table-scroll';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
 });
 </script>
 </body>
