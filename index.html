@@ -843,6 +843,30 @@ git branch -D feature/login   <span class="cm"># elimina forzatamente</span></co
     </tbody>
   </table>
 
+  <h3 id="sec-branch-rename-mod2">git branch -m &lt;nuovo-nome&gt; — rinominare un branch</h3>
+  <pre><code><span class="cm"># Se sei già sopra al branch da rinominare</span>
+git branch -m nuovo-nome
+
+<span class="cm"># Se vuoi rinominarne uno diverso senza spostarti</span>
+git branch -m vecchio-nome nuovo-nome</code></pre>
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">git</td><td class="desc">il programma Git</td></tr>
+      <tr><td class="part">branch -m</td><td class="desc">"move" — rinomina un branch. I commit dentro restano identici, cambia solo l'etichetta (il puntatore)</td></tr>
+      <tr><td class="part">nuovo-nome</td><td class="desc">se lanciato senza vecchio nome, rinomina il branch su cui sei attualmente (HEAD)</td></tr>
+      <tr><td class="part">vecchio-nome nuovo-nome</td><td class="desc">forma con due argomenti: rinomina un branch specifico anche se non è quello corrente</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Solo locale vs già pushato</div>
+    <p>Se il branch <strong>non è mai stato pushato</strong>, <code>git branch -m</code> basta da solo: nessun riferimento remoto da sistemare. Se invece è <strong>già su Azure DevOps</strong>, dopo il rename locale devi anche pushare il nuovo nome e cancellare il vecchio branch remoto, altrimenti restano due branch paralleli:</p>
+    <pre><code>git branch -m vecchio-nome nuovo-nome
+git push -u origin nuovo-nome           <span class="cm"># pusha il nuovo nome e imposta il tracking</span>
+git push origin --delete vecchio-nome   <span class="cm"># elimina il vecchio branch dal remote</span></code></pre>
+  </div>
+
   <h3>git switch -c &lt;nome-branch&gt;</h3>
   <pre><code>git switch -c feature/login    <span class="cm"># crea e si sposta sul nuovo branch</span>
 git switch master              <span class="cm"># torna su master</span></code></pre>
@@ -1954,6 +1978,36 @@ git push -u origin feature/nuova-funzionalita   <span class="cm"># pusha il bran
   <pre><code>git fetch
 git merge origin/dev    <span class="cm"># oppure: git rebase origin/dev (→ Modulo 6)</span>
 git push</code></pre>
+
+  <h3 id="sec-divergenza-check-mod4">Controllare la divergenza da dev senza cambiare branch</h3>
+  <p>Prima di allinearti, spesso vuoi solo <strong>sapere</strong> quanto ti sei allontanato da <code>dev</code>, senza ancora fare merge o rebase. Questi comandi ti danno la fotografia della situazione senza toccare nulla:</p>
+
+  <pre><code><span class="cm"># 1. Aggiorna il riferimento locale a dev (senza cambiare branch)</span>
+git fetch origin dev
+
+<span class="cm"># 2. Vedi quanti commit siete divergenti (dietro/avanti rispetto a dev)</span>
+git rev-list --left-right --count origin/dev...HEAD
+
+<span class="cm"># 3. Vedi nel dettaglio i commit che dev ha e tu no</span>
+git log HEAD..origin/dev --oneline
+
+<span class="cm"># 4. (opzionale) Vedi anche i file cambiati in quei commit</span>
+git diff HEAD...origin/dev --stat</code></pre>
+
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">git fetch origin dev</td><td class="desc">scarica gli ultimi commit di dev dal remote e aggiorna solo <code>origin/dev</code> — non tocca il tuo branch corrente, non fa merge, non fa checkout</td></tr>
+      <tr><td class="part">git rev-list --left-right --count origin/dev...HEAD</td><td class="desc">conta i commit su due lati della biforcazione rispetto alla merge base. Il <strong>primo numero</strong> = quanti commit ha <code>dev</code> che tu non hai (sei "behind"); il <strong>secondo numero</strong> = quanti commit hai tu sul tuo feature branch che dev non ha (sei "ahead")</td></tr>
+      <tr><td class="part">git log HEAD..origin/dev --oneline</td><td class="desc">elenca solo i commit che esistono in <code>origin/dev</code> ma non nella tua storia — è la lista di cosa "ti perderesti" se non aggiornassi</td></tr>
+      <tr><td class="part">git diff HEAD...origin/dev --stat</td><td class="desc">i tre puntini calcolano il diff rispetto alla merge base (non un diff diretto HEAD vs dev) e <code>--stat</code> mostra solo l'elenco dei file cambiati con il conteggio delle righe, senza il contenuto — utile per farsi un'idea veloce di quanto è "largo" l'aggiornamento prima di fare merge o rebase</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">Perché usare i tre puntini (...) e non due (..)</div>
+    <p><code>origin/dev...HEAD</code> (tre puntini) confronta entrambi i lati rispetto alla <strong>merge base</strong> comune — utile per sapere chi ha cosa. <code>HEAD..origin/dev</code> (due puntini) invece elenca semplicemente i commit raggiungibili da <code>origin/dev</code> ma non da <code>HEAD</code> — perfetto per "cosa mi manca". Sono strumenti diversi per la stessa indagine, non un errore di battitura.</p>
+  </div>
 
   <hr class="divider">
 
@@ -5600,6 +5654,7 @@ mvn test -q
       <div><a class="xref" href="#" onclick="showAndScroll(7,'sec-bisect-mod8');return false;">Bisect (git bisect)</a> — Mod 8</div>
       <div><a class="xref" href="#" onclick="showAndScroll(1,'sec-cosa-sono-branch');return false;">Branch — cosa sono</a> — Mod 2</div>
       <div><a class="xref" href="#" onclick="showAndScroll(2,'');return false;">Branch — sotto il cofano</a> — Mod 3</div>
+      <div><a class="xref" href="#" onclick="showAndScroll(1,'sec-branch-rename-mod2');return false;">Branch — rinominare (git branch -m)</a> — Mod 2</div>
     </div>
   </div>
 
@@ -5625,6 +5680,7 @@ mvn test -q
     <div style="font-size:13px;line-height:2;">
       <div><a class="xref" href="#" onclick="showAndScroll(2,'sec-detached-head-mod3');return false;">Detached HEAD</a> — Mod 3</div>
       <div><a class="xref" href="#" onclick="showAndScroll(3,'sec-divergenza-mod4');return false;">3.6 — Divergenza locale/remota</a> — Mod 4</div>
+      <div><a class="xref" href="#" onclick="showAndScroll(3,'sec-divergenza-check-mod4');return false;">Divergenza — controllare senza cambiare branch</a> — Mod 4</div>
     </div>
   </div>
 

@@ -235,6 +235,7 @@
       <a class="sec-link" href="#" onclick="showAndScroll(0,'f1-ff');return false;">1.1 — Fast-forward merge</a>
       <a class="sec-link" href="#" onclick="showAndScroll(0,'f1-noff');return false;">1.2 — Merge con --no-ff</a>
       <a class="sec-link" href="#" onclick="showAndScroll(0,'f1-log');return false;">1.3 — Leggere il log</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(0,'f1-rename');return false;">1.4 — Rinominare un branch</a>
     </div>
   </div>
 
@@ -261,6 +262,7 @@
       <a class="sec-link" href="#" onclick="showAndScroll(2,'f3-push');return false;">3.1 — Push branch e apertura PR</a>
       <a class="sec-link" href="#" onclick="showAndScroll(2,'f3-fetch');return false;">3.2 — Fetch e allineamento</a>
       <a class="sec-link" href="#" onclick="showAndScroll(2,'f3-pullrebase');return false;">3.3 — git pull --rebase</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(2,'f3-divcheck');return false;">3.4 — Controllare la divergenza</a>
     </div>
   </div>
 
@@ -560,6 +562,35 @@ git log --oneline --graph --all</code></pre>
     </tbody>
   </table>
 
+  <hr class="divider" id="f1-rename">
+  <h2>1.4 — Rinominare un branch (git branch -m)</h2>
+  <p>Capita spesso: scegli un nome per un branch, poi ti accorgi che non è chiaro o non segue la convenzione. Se il branch è ancora <strong>solo locale</strong> (mai pushato), rinominarlo è banale:</p>
+
+  <pre><code>git switch -c feature/tabelle
+# modifica o crea un file, poi:
+git add .
+git commit -m "feat: prima bozza tabelle"
+# ops, meglio un nome più preciso:
+git branch -m feature/tabelle-utenti
+git branch</code></pre>
+
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">git branch -m feature/tabelle-utenti</td><td class="desc">rinomina il branch su cui sei attualmente posizionato (HEAD). I commit dentro restano identici, hash compresi — cambia solo l'etichetta</td></tr>
+      <tr><td class="part">git branch</td><td class="desc">conferma: <code>feature/tabelle</code> non c'è più, al suo posto <code>* feature/tabelle-utenti</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Se il branch è già su Azure DevOps</div>
+    <p>Se avessi già fatto <code>git push -u origin feature/tabelle</code> prima di accorgerti del nome sbagliato, il rename locale da solo non basta — il remoto resta con il vecchio nome. Devi anche:</p>
+    <pre style="margin-top:8px;"><code>git branch -m feature/tabelle feature/tabelle-utenti
+git push -u origin feature/tabelle-utenti   <span class="cm"># pusha il nuovo nome, imposta il tracking</span>
+git push origin --delete feature/tabelle    <span class="cm"># elimina il vecchio branch dal remoto</span></code></pre>
+    <p>Senza l'ultimo comando ti ritrovi con due branch paralleli su Azure DevOps — uno vivo e uno "fantasma" col nome vecchio.</p>
+  </div>
+
   <div class="callout callout-warn">
     <div class="callout-label">Prima di passare alla Fase 2 — pusha!</div>
     <p>Allinea il remoto con quello che hai fatto in locale:</p>
@@ -857,6 +888,50 @@ git rebase --continue</code></pre>
   <div class="callout callout-tip">
     <div class="callout-label">Regola pratica per il tuo team</div>
     <p>Nel vostro workflow con cherry-pick verso <code>integration</code>, la history lineare è una priorità — <code>git pull --rebase</code> dovrebbe essere la scelta di default quando aggiorni un feature branch o <code>dev</code>. Usa il pull normale solo quando devi tracciare esplicitamente un'integrazione o quando il branch è già condiviso e altri ci hanno già lavorato sopra.</p>
+  </div>
+
+  <hr class="divider" id="f3-divcheck">
+  <h2>3.4 — Controllare la divergenza prima di sincronizzare</h2>
+  <p>Prima di lanciare un <code>pull</code> o un <code>pull --rebase</code>, a volte vuoi solo <strong>sapere</strong> quanto sei divergente da <code>dev</code>, senza ancora toccare nulla — né il branch corrente, né la working directory. Riprendiamo esattamente lo scenario della sezione precedente: <code>45e4887</code> è il tuo commit locale non pushato, <code>7851a8c</code> è il commit fatto da Azure DevOps che simula il collega.</p>
+
+  <pre><code><span class="cm"># 1. Aggiorna il riferimento locale a dev, senza cambiare branch né mergare</span>
+git fetch origin dev
+
+<span class="cm"># 2. Quanti commit di differenza, nei due sensi</span>
+git rev-list --left-right --count origin/dev...HEAD
+
+<span class="cm"># 3. Quali commit ha dev che tu non hai</span>
+git log HEAD..origin/dev --oneline
+
+<span class="cm"># 4. Quali file cambiano in quei commit (senza il contenuto)</span>
+git diff HEAD...origin/dev --stat</code></pre>
+
+  <h3>Output atteso su questo scenario</h3>
+  <div class="git-log">$ git rev-list --left-right --count origin/dev...HEAD
+1	1</div>
+  <div class="log-annotation">
+    Primo numero (<strong>1</strong>) = commit che ha <code>origin/dev</code> e tu non hai (<code>7851a8c</code>). Secondo numero (<strong>1</strong>) = commit che hai tu e <code>origin/dev</code> non ha (<code>45e4887</code>). Sei "ahead 1, behind 1" — esattamente la divergenza che avevi già visto con <code>git branch -vv</code>.
+  </div>
+
+  <div class="git-log">$ git log HEAD..origin/dev --oneline
+<span class="h">7851a8c</span> Updated login.txt per git pull --rebase</div>
+  <div class="log-annotation">
+    Solo il commit che ti "manca". Se questa lista fosse lunga, sarebbe la tua checklist di cosa stai per integrare prima ancora di farlo.
+  </div>
+
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">git fetch origin dev</td><td class="desc">aggiorna solo <code>origin/dev</code> in locale — non cambia branch, non fa merge, non fa checkout</td></tr>
+      <tr><td class="part">origin/dev...HEAD (tre puntini)</td><td class="desc">confronta entrambi i lati rispetto alla merge base comune — serve per contare "chi ha cosa"</td></tr>
+      <tr><td class="part">HEAD..origin/dev (due puntini)</td><td class="desc">elenca solo i commit raggiungibili da <code>origin/dev</code> ma non da <code>HEAD</code> — serve per "cosa mi manca"</td></tr>
+      <tr><td class="part">git diff HEAD...origin/dev --stat</td><td class="desc">diff rispetto alla merge base, con <code>--stat</code> mostra solo l'elenco file e righe cambiate, senza contenuto — utile per farsi un'idea veloce di quanto è "largo" l'aggiornamento. Il file esatto dipende da cosa hai modificato tu: prova sul tuo repo e guarda il risultato</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">Perché non fare direttamente pull</div>
+    <p>Su un branch condiviso come <code>dev</code>, guardare prima con questi comandi ti evita sorprese: se <code>git log HEAD..origin/dev</code> mostra dieci commit da colleghi diversi, magari preferisci coordinarti prima di lanciare un rebase automatico che potrebbe generare conflitti a raffica.</p>
   </div>
 
   <div class="nav-row">
@@ -1522,6 +1597,7 @@ git push origin dev</code></pre>
     <thead><tr><th>Comando</th><th>Descrizione</th></tr></thead>
     <tbody>
       <tr><td class="part">git switch -c &lt;branch&gt;</td><td class="desc">Crea e sposta su un nuovo branch</td></tr>
+      <tr><td class="part">git branch -m &lt;nuovo-nome&gt;</td><td class="desc">Rinomina il branch corrente (solo locale, se non ancora pushato)</td></tr>
       <tr><td class="part">git merge --no-ff &lt;branch&gt;</td><td class="desc">Merge con commit esplicito</td></tr>
       <tr><td class="part">git merge -X ours &lt;branch&gt;</td><td class="desc">Merge: vince il branch corrente in caso di conflitto</td></tr>
       <tr><td class="part">git merge -X theirs &lt;branch&gt;</td><td class="desc">Merge: vince il branch mergato in caso di conflitto</td></tr>
@@ -1540,7 +1616,9 @@ git push origin dev</code></pre>
       <tr><td class="part">git restore --staged &lt;file&gt;</td><td class="desc">Toglie dalla staging area</td></tr>
       <tr><td class="part">git cherry-pick &lt;hash&gt;</td><td class="desc">Copia un commit sul branch corrente</td></tr>
       <tr><td class="part">git cherry-pick --continue</td><td class="desc">Continua dopo aver risolto un conflitto</td></tr>
-      <tr><td class="part">git fetch origin</td><td class="desc">Scarica lo stato del remoto senza mergare</td></tr>
+      <tr><td class="part">git fetch origin dev</td><td class="desc">Scarica lo stato del remoto senza mergare</td></tr>
+      <tr><td class="part">git rev-list --left-right --count A...B</td><td class="desc">Conta i commit divergenti nei due sensi (ahead/behind)</td></tr>
+      <tr><td class="part">git diff A...B --stat</td><td class="desc">File cambiati tra A e B rispetto alla merge base, senza contenuto</td></tr>
       <tr><td class="part">git pull origin &lt;branch&gt;</td><td class="desc">fetch + merge — allinea il locale al remoto</td></tr>
       <tr><td class="part">git status</td><td class="desc">Stato attuale: branch, staging, divergenze</td></tr>
     </tbody>
@@ -1548,7 +1626,7 @@ git push origin dev</code></pre>
 
   <div class="callout callout-info">
     <div class="callout-label">Tutto coperto!</div>
-    <p>Tutti gli argomenti avanzati sono ora inclusi nella pratica: <strong>git pull --rebase</strong> (Fase 3.3), <strong>git restore --source</strong> (Fase 5.5), <strong>disaster recovery completo col reflog</strong> (Fase 5.6), <strong>i 3 scenari di --force-with-lease</strong> (Fase 4.4).</p>
+    <p>Tutti gli argomenti avanzati sono ora inclusi nella pratica: <strong>git pull --rebase</strong> (Fase 3.3), <strong>controllo divergenza senza cambiare branch</strong> (Fase 3.4), <strong>rinomina branch</strong> (Fase 1.4), <strong>git restore --source</strong> (Fase 5.5), <strong>disaster recovery completo col reflog</strong> (Fase 5.6), <strong>i 3 scenari di --force-with-lease</strong> (Fase 4.4).</p>
   </div>
 
   <div class="nav-row">
