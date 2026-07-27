@@ -402,6 +402,24 @@
     </div>
   </div>
 
+  <!-- Modulo 10 -->
+  <div class="mod-group" id="group-9">
+    <button class="mod-btn" onclick="showMod(9)">
+      <span class="mod-dot dot-coral"></span>
+      <span class="mod-btn-text"><strong>Modulo 10</strong><span class="mod-label">GitFlow avanzato — Doppio binario</span></span>
+      <span class="mod-chevron">▸</span>
+    </button>
+    <div class="mod-sections">
+      <a class="sec-link" href="#" onclick="showAndScroll(9,'sec-limiti-modo1e2-mod10');return false;">10.1 — I limiti dei workflow che già conosci</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(9,'sec-idea-doppio-binario-mod10');return false;">10.2 — L'idea di fondo del doppio binario</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(9,'sec-setup-doppio-binario-mod10');return false;">10.3 — Setup dei due branch paralleli</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(9,'sec-lavoro-quotidiano-mod10');return false;">10.4 — Lavoro quotidiano e cherry-pick immediato</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(9,'sec-chiusura-feature-mod10');return false;">10.5 — Chiusura feature: merge su dev e PR su integration</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(9,'sec-confronto-tre-modi-mod10');return false;">10.6 — Confronto a tre e raccomandazione</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(9,'sec-insidie-doppio-binario-mod10');return false;">10.7 — Aspetti negativi e best practice</a>
+    </div>
+  </div>
+
   <!-- Glossario -->
   <div class="mod-group" id="group-glossario">
     <button class="mod-btn" onclick="showMod('glossario')">
@@ -4878,6 +4896,11 @@ c44d210 HEAD@{3}  checkout: moving from main to feature/pagamenti</code></pre>
     <p>Se cherry-picki il commit <code>A</code> da <code>feature</code> su <code>main</code>, otterrai <code>A'</code> su main. Quando poi fai merge di <code>feature</code> su <code>main</code>, Git vedrà <code>A</code> e <code>A'</code> come due commit distinti con lo stesso diff. Nella maggior parte dei casi Git è abbastanza intelligente da ignorare il duplicato, ma può creare confusione nella log history. Il flag <code>-x</code> aiuta proprio a documentare questa relazione.</p>
   </div>
 
+  <div class="callout callout-info">
+    <div class="callout-label">ℹ️ Fare il cherry-pick sempre a caldo: c'è un workflow per questo</div>
+    <p>Se il tuo team deve mantenere due branch stabili paralleli (es. <code>dev</code> e <code>integration</code>) e vuole evitare cherry-pick "a freddo" su commit vecchi, il <a href="#" class="xref" onclick="showAndScroll(9,'sec-idea-doppio-binario-mod10');return false;">Modulo 10 — GitFlow avanzato</a> descrive un workflow di squadra che rende il cherry-pick sempre immediato, per costruzione.</p>
+  </div>
+
   <div class="callout callout-warn">
     <div class="callout-label">⚠️ Non fare cherry-pick durante una sessione bisect attiva</div>
     <p>Durante <code>git bisect</code> sei in <strong>detached HEAD</strong> — non sei su nessun branch. Se in quello stato esegui un cherry-pick, Git lo applica tecnicamente su HEAD ma il commit risultante non appartiene a nessun branch. Quando poi esegui <code>git bisect reset</code>, torni al branch di partenza e quel commit sembra sparito (è nel reflog, ma è un casino da recuperare). Regola semplice: finisci sempre la sessione bisect con <code>git bisect reset</code> prima di fare qualsiasi altra operazione. (→ <a href="#" class="xref" onclick="showAndScroll(7,'sec-bisect-mod8');return false;">Modulo 8: git bisect</a>)</p>
@@ -5376,6 +5399,254 @@ mvn test -q
 
   <div class="nav-row">
     <button class="nav-btn" onclick="show(7)">← Modulo 8</button>
+    <button class="nav-btn next" onclick="show(9)">Modulo 10 →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ MODULO 10 -->
+<div class="mod-page" id="mod-9">
+  <div class="page-eyebrow eyebrow-coral">Modulo 10 · Expert</div>
+  <h1>GitFlow avanzato — il doppio binario</h1>
+  <p class="page-sub">limiti dei workflow classici · doppio binario dev/integration · cherry-pick immediato · confronto a tre approcci</p>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="sec-limiti-modo1e2-mod10">10.1 — I limiti dei workflow che già conosci</h2>
+
+  <p>Fin qui il tutorial ti ha dato tutti gli strumenti singoli: <a href="#" class="xref" onclick="showAndScroll(4,'sec-tre-tipi-merge');return false;">merge</a>, <a href="#" class="xref" onclick="showAndScroll(5,'sec-problema-rebase');return false;">rebase</a>, <a href="#" class="xref" onclick="showAndScroll(8,'sec-cherry-pick-intro-mod9');return false;">cherry-pick</a>. Questo modulo li combina in un <strong>workflow di squadra</strong> pensato per un caso preciso: un team che deve mantenere due branch stabili paralleli — ad esempio <code>dev</code> (sviluppo continuo) e <code>integration</code> (candidato alla release) — e vuole passare da uno all'altro senza fare cherry-pick "a freddo".</p>
+
+  <p>Partiamo da due modi di lavorare piuttosto comuni, per capire dove si rompono.</p>
+
+  <h3>Modo 1 — Cherry-pick tardivo</h3>
+
+  <p>Ogni sviluppatore lavora normalmente: feature branch da <code>dev</code>, merge <code>--no-ff</code> su <code>dev</code> a fine lavoro. Poi, quando si avvicina la release, si stacca un branch temporaneo da <code>integration</code> e ci si cherry-pickano sopra i commit scelti.</p>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">⚠️ Il problema: cherry-pick a contesto freddo</div>
+    <p>Il cherry-pick avviene <strong>settimane o mesi dopo</strong> che il commit è stato scritto. Non ti ricordi più i dettagli, non ricordi perché avevi fatto una certa scelta, e se scatta un conflitto diventa un enigma da risolvere alla cieca. È esattamente il rischio descritto nel <a href="#" class="xref" onclick="showAndScroll(8,'sec-cherry-pick-pratiche-mod9');return false;">Modulo 9 §9.5</a> — qui però il problema non è tecnico, è organizzativo: si accumula lavoro da "smistare" invece di farlo mano a mano.</p>
+  </div>
+
+  <h3>Modo 2 — Merge fresco su branch condiviso</h3>
+
+  <p>Per risolvere il problema del Modo 1, un'alternativa è far partire i feature branch direttamente da un branch condiviso <code>tmp-integration</code> invece che da <code>dev</code>. Si mergia su <code>dev</code> a fine lavoro (conflitti risolti a caldo) e si mergia lo stesso feature branch anche su <code>tmp-integration</code> (di nuovo a caldo). Niente cherry-pick.</p>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">⚠️ Il problema: un branch condiviso "caldo" è fragile</div>
+    <p><code>tmp-integration</code> riceve merge da tutti gli sviluppatori del team. Senza una disciplina rigorosa — niente branch a metà, niente esperimenti, solo lavoro davvero finito — rischia di diventare un secondo <code>dev</code> con un nome diverso: instabile, pieno di codice non pronto, difficile da usare come base per una release.</p>
+  </div>
+
+  <p>Il Modo 3 che vediamo in questo modulo nasce proprio per prendere il meglio di entrambi: la freschezza del cherry-pick immediato (niente contesto freddo) senza un branch condiviso instabile.</p>
+
+  <hr class="divider">
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="sec-idea-doppio-binario-mod10">10.2 — L'idea di fondo del doppio binario</h2>
+
+  <p>Ogni sviluppatore lavora su <strong>due branch paralleli fin dall'inizio</strong>: uno agganciato a <code>dev</code>, uno agganciato a <code>integration</code>. Non è lavoro duplicato — è lo stesso lavoro, ma i commit "maturi" vengono promossi sul binario integration in modo consapevole e immediato, non a posteriori.</p>
+
+  <div class="diagram">
+    <div>dev</div>
+    <div>└── <span class="node-teal">feature/login-dev</span>   <span class="cm">← lavori qui normalmente: WIP, esperimenti, tutto lecito</span></div>
+    <div></div>
+    <div>integration</div>
+    <div>└── <span class="node-amber">feature/login-int</span>   <span class="cm">← branch pulito, riceve solo i commit già maturi</span></div>
+  </div>
+
+  <p>La logica è semplice: <code>feature/login-dev</code> è il tuo laboratorio, dove puoi rompere e aggiustare senza preoccuparti di nulla. <code>feature/login-int</code> è la "cassaforte" dove sposti solo ciò che è pronto — e lo fai <strong>subito dopo</strong> averlo scritto, quando il contesto è ancora fresco in testa.</p>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">💡 Perché il cherry-pick qui funziona bene</div>
+    <p>Il cherry-pick del Modo 1 fa male perché avviene su commit vecchi di settimane. Qui il cherry-pick è <strong>micro e immediato</strong>: stai spostando qualcosa scritto 5 minuti fa. Contesto freschissimo, conflitti praticamente impossibili — perché <code>feature/login-int</code> parte da <code>integration</code>, che per definizione è stabile.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="sec-setup-doppio-binario-mod10">10.3 — Setup dei due branch paralleli</h2>
+
+  <p>Prima cosa da fare: assicurati che entrambi i branch remoti siano aggiornati.</p>
+
+  <pre><code><span class="kw">git fetch</span> origin
+
+<span class="kw">git switch</span> dev
+<span class="kw">git pull</span>
+
+<span class="kw">git switch</span> integration
+<span class="kw">git pull</span></code></pre>
+
+  <p>Poi stacchi i due branch di lavoro, uno da ciascuna base:</p>
+
+  <pre><code><span class="cm"># Binario dev — qui lavori liberamente</span>
+<span class="kw">git switch</span> dev
+<span class="kw">git switch</span> -c feature/login-dev
+<span class="kw">git push</span> -u origin feature/login-dev
+
+<span class="cm"># Binario integration — qui finisce solo roba stabile</span>
+<span class="kw">git switch</span> integration
+<span class="kw">git switch</span> -c feature/login-int
+<span class="kw">git push</span> -u origin feature/login-int</code></pre>
+
+  <div class="callout callout-info">
+    <div class="callout-label">ℹ️ Perché pushi subito anche il binario "sporco"</div>
+    <p>Pushare <code>feature/login-dev</code> appena creato — prima ancora di scrivere codice — serve da backup e da tracking (<code>-u</code>): se il laptop si pianta, il lavoro non sparisce. Nessun problema se contiene WIP: su questo branch non apri mai una PR, quindi nessuno lo revisiona finché non decidi tu. Farlo subito, con <code>-u</code>, evita anche il problema opposto — arrivare alla pulizia finale (§10.5) e scoprire che <code>git push origin --delete</code> fallisce perché il branch non è mai stato su origin.</p>
+  </div>
+
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">feature/login-dev</td><td class="desc">parte dall'ultimo commit di <code>dev</code> — è il branch "sporco", dove committi liberamente</td></tr>
+      <tr><td class="part">feature/login-int</td><td class="desc">parte dall'ultimo commit di <code>integration</code> — riceve solo cherry-pick di commit già maturi</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-info">
+    <div class="callout-label">ℹ️ Naming convention: non improvvisare</div>
+    <p>Con due branch per feature, il repo si popola in fretta. Concordate in team un suffisso fisso (<code>-dev</code> / <code>-int</code>, oppure adattatelo al vostro schema Azure Boards, ad esempio <code>feature/Fb_MN_1234_login-dev</code> e <code>feature/Fb_MN_1234_login-int</code>) così chiunque nel team capisce a colpo d'occhio a cosa serve ogni branch.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="sec-lavoro-quotidiano-mod10">10.4 — Lavoro quotidiano e cherry-pick immediato</h2>
+
+  <p>Su <code>feature/login-dev</code> lavori come faresti normalmente: commit WIP, sperimenti, ti sbagli, aggiusti. Nessuna regola diversa dal solito.</p>
+
+  <pre><code><span class="kw">git switch</span> feature/login-dev
+
+<span class="cm"># Commit 1 — WIP, ancora incompleto</span>
+<span class="kw">git add</span> .
+<span class="kw">git commit</span> -m <span class="st">"WIP: struttura form login"</span>
+
+<span class="cm"># Commit 2 — ancora sporco</span>
+<span class="kw">git add</span> .
+<span class="kw">git commit</span> -m <span class="st">"WIP: aggiungo validazione lato client"</span>
+
+<span class="cm"># Commit 3 — stabile e completo ✅</span>
+<span class="kw">git add</span> .
+<span class="kw">git commit</span> -m <span class="st">"feat: validazione email e password con messaggi di errore"</span></code></pre>
+
+  <p>Il Commit 3 è stabile: è il momento di promuoverlo <strong>subito</strong> sul binario integration, finché il contesto è fresco.</p>
+
+  <pre><code><span class="cm"># Recupera l'hash del commit stabile</span>
+<span class="kw">git log</span> --oneline -5
+<span class="cm"># es: a1b2c3d feat: validazione email e password con messaggi di errore</span>
+
+<span class="cm"># Vai sul binario integration e cherry-pick immediato</span>
+<span class="kw">git switch</span> feature/login-int
+<span class="kw">git cherry-pick</span> a1b2c3d
+<span class="kw">git push</span> origin feature/login-int
+
+<span class="cm"># Torna a lavorare sul binario dev</span>
+<span class="kw">git switch</span> feature/login-dev</code></pre>
+
+  <p>Fatto. Il commit è stato spostato pochi minuti dopo averlo scritto — conflitti praticamente impossibili, perché il diff che stai applicando è identico al contesto in cui l'hai appena scritto.</p>
+
+  <p>Ripeti lo stesso schema per ogni commit stabile successivo: lavori su <code>-dev</code>, quando un commit è maturo lo cherry-picki su <code>-int</code>, e torni a lavorare.</p>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">⚠️ Non aspettare — è il punto centrale del Modo 3</div>
+    <p>Se accumuli commit stabili senza cherry-pickarli subito, ricadi parzialmente nel problema del Modo 1: il contesto si raffredda, e il vantaggio del doppio binario si dissolve. La disciplina di promuovere <strong>appena il commit è pronto</strong> è ciò che rende questo workflow diverso, non un dettaglio opzionale.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="sec-chiusura-feature-mod10">10.5 — Chiusura feature: merge su dev e PR su integration</h2>
+
+  <p>Quando la feature è completa, sul binario <code>dev</code> fai il solito merge <code>--no-ff</code> che già conosci dal <a href="#" class="xref" onclick="showAndScroll(4,'sec-tre-tipi-merge');return false;">Modulo 5</a> — qui finisce <strong>tutta</strong> la storia, compresi i commit WIP.</p>
+
+  <pre><code><span class="kw">git switch</span> dev
+<span class="kw">git merge</span> --no-ff feature/login-dev -m <span class="st">"Merge feature/login-dev: feature login completa"</span>
+<span class="kw">git push</span> origin dev
+
+<span class="cm"># Pulizia branch dev</span>
+<span class="kw">git branch</span> -d feature/login-dev
+<span class="kw">git push</span> origin --delete feature/login-dev</code></pre>
+
+  <p>Sul binario integration non serve fare nient'altro: <code>feature/login-int</code> è <strong>già aggiornato</strong> con tutti i commit stabili, promossi in tempo reale durante lo sviluppo. Basta aprire la PR su Azure DevOps.</p>
+
+  <div class="callout callout-info">
+    <div class="callout-label">ℹ️ Nessun tmp/ intermedio</div>
+    <p>Nel Modo 2 esisteva un <code>tmp-integration</code> condiviso tra tutti. Qui non serve: <code>feature/login-int</code> è il tuo branch privato e fa già lui stesso da "zona cuscinetto". La PR va direttamente <code>feature/login-int → integration</code>, senza passaggi intermedi condivisi. (→ <a href="#" class="xref" onclick="showAndScroll(1,'sec-pr-mod2');return false;">Modulo 2 §2.4 — Pull Request su Azure DevOps</a>)</p>
+  </div>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">⚠️ Spunta "Delete source branch after merging"</div>
+    <p>Nella PR su Azure DevOps, ricordati di attivare l'eliminazione automatica del branch sorgente: dopo il merge su <code>integration</code>, <code>feature/login-int</code> ha esaurito il suo scopo.</p>
+  </div>
+
+  <h3>Stato finale dei branch</h3>
+
+  <div class="diagram">
+    <div>dev</div>
+    <div>└── ✅ merge commit di feature/login <span class="cm">(tutto, anche i WIP)</span></div>
+    <div></div>
+    <div>integration</div>
+    <div>└── ✅ solo i commit stabili, promossi in tempo reale</div>
+    <div></div>
+    <div>feature/login-dev  <span class="cm">→ eliminato dopo il merge su dev</span></div>
+    <div>feature/login-int  <span class="cm">→ eliminato dopo il merge PR su integration</span></div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="sec-confronto-tre-modi-mod10">10.6 — Confronto a tre e raccomandazione</h2>
+
+  <table class="anatomy">
+    <thead><tr><th>Aspetto</th><th>Modo 1 — Cherry-pick</th><th>Modo 2 — Merge fresco</th><th>Modo 3 — Doppio binario</th></tr></thead>
+    <tbody>
+      <tr><td class="part">Quando risolvi i conflitti</td><td class="desc">Settimane dopo, a freddo</td><td class="desc">Subito, ma su branch condiviso</td><td class="desc">Subito, sul proprio branch privato</td></tr>
+      <tr><td class="part">Chi tocca integration</td><td class="desc">Tutti, via cherry-pick tardivo su tmp/</td><td class="desc">Tutti, via tmp-integration condiviso</td><td class="desc">Solo tu, solo i commit che hai approvato</td></tr>
+      <tr><td class="part">Rischio principale</td><td class="desc">Contesto freddo, conflitti da enigma</td><td class="desc">Branch condiviso instabile</td><td class="desc">Disciplina individuale costante</td></tr>
+      <tr><td class="part">Curva di apprendimento</td><td class="desc">Bassa</td><td class="desc">Bassa</td><td class="desc">Più alta — due branch da gestire in parallelo</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">💡 Raccomandazione</div>
+    <p><strong>Modo 3</strong> se il team è maturo e disciplinato: elimina il cherry-pick tardivo del Modo 1 e il branch condiviso instabile del Modo 2 — i rischi residui sono comportamentali, non tecnici. <strong>Modo 2</strong> se cercate semplicità di adozione, ad esempio in fase di transizione o con un team meno esperto di Git.</p>
+  </div>
+
+  <p>In entrambi i casi vale lo stesso principio: <strong>il problema non è mai Git</strong>. Git fa la sua parte in modo prevedibile — è l'abitudine e la disciplina del team a decidere se un workflow regge o crolla.</p>
+
+  <hr class="divider">
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="sec-insidie-doppio-binario-mod10">10.7 — Aspetti negativi e best practice</h2>
+
+  <table class="anatomy">
+    <thead><tr><th>Rischio</th><th>Come mitigarlo</th></tr></thead>
+    <tbody>
+      <tr><td class="part">Dimenticarsi il cherry-pick immediato</td><td class="desc">Fanne un'abitudine legata al commit stabile stesso: appena scrivi un messaggio "feat: ..." pulito, è il segnale per promuoverlo. Non aspettare la fine della giornata</td></tr>
+      <tr><td class="part">Repo che si popola di branch</td><td class="desc">Naming convention chiara e obbligatoria, più pulizia sistematica post-merge (locale e remota) come visto in §10.5</td></tr>
+      <tr><td class="part">Curva di apprendimento del team</td><td class="desc">Fate una prima feature "pilota" insieme, passo passo, prima di generalizzare il workflow a tutto il team</td></tr>
+      <tr><td class="part">Confondere su quale branch ti trovi</td><td class="desc"><code>git branch --show-current</code> prima di ogni commit importante, oppure configura il prompt della shell per mostrare sempre il branch attivo</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">⚠️ Questo workflow non sostituisce la disciplina di base</div>
+    <p>Il doppio binario funziona solo se le fondamenta reggono: <code>--no-ff</code> per la tracciabilità (→ <a href="#" class="xref" onclick="showAndScroll(1,'sec-fast-forward');return false;">Modulo 2 §2.2</a>), rebase del feature branch prima del merge quando serve una storia lineare (→ <a href="#" class="xref" onclick="showAndScroll(5,'sec-problema-rebase');return false;">Modulo 6</a>), e la cautela già vista per il cherry-pick (→ <a href="#" class="xref" onclick="showAndScroll(8,'sec-cherry-pick-pratiche-mod9');return false;">Modulo 9 §9.5</a>). Il Modo 3 è un modo di orchestrare questi strumenti, non un sostituto.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>Riepilogo — Cheat Sheet Modulo 10</h2>
+  <table class="anatomy">
+    <thead><tr><th>Comando</th><th>Cosa fa</th></tr></thead>
+    <tbody>
+      <tr><td class="part">git switch -c feature/xxx-dev</td><td class="desc">crea il binario dev della feature, partendo da dev</td></tr>
+      <tr><td class="part">git switch -c feature/xxx-int</td><td class="desc">crea il binario integration della feature, partendo da integration</td></tr>
+      <tr><td class="part">git log --oneline -5</td><td class="desc">recupera l'hash del commit stabile appena scritto, da promuovere</td></tr>
+      <tr><td class="part">git cherry-pick &lt;SHA&gt;</td><td class="desc">promuove immediatamente il commit stabile dal binario dev al binario integration</td></tr>
+      <tr><td class="part">git merge --no-ff feature/xxx-dev</td><td class="desc">chiude la feature su dev con storia tracciabile, WIP inclusi</td></tr>
+      <tr><td class="part">git branch --show-current</td><td class="desc">controlla su quale dei due binari ti trovi prima di committare</td></tr>
+    </tbody>
+  </table>
+
+  <div class="nav-row">
+    <button class="nav-btn" onclick="show(8)">← Modulo 9</button>
     <button class="nav-btn next" onclick="showMod('glossario')">Glossario dei concetti →</button>
   </div>
 </div>
@@ -5436,6 +5707,12 @@ mvn test -q
         <td class="part">DAG</td>
         <td class="desc">Directed Acyclic Graph — la struttura dati che Git usa per la history. Ogni commit punta ai suoi genitori, mai in avanti. Non esistono cicli.</td>
         <td class="desc"><a class="xref" href="#" onclick="showAndScroll(0,'sec-cose-git-mod1');return false;">Mod 1</a></td>
+      </tr>
+
+      <tr>
+        <td class="part">Doppio binario</td>
+        <td class="desc">Workflow di squadra (Modo 3) in cui ogni sviluppatore mantiene due branch paralleli per feature — uno da dev, uno da integration — promuovendo i commit stabili con cherry-pick immediato invece che a posteriori.</td>
+        <td class="desc"><a class="xref" href="#" onclick="showAndScroll(9,'sec-idea-doppio-binario-mod10');return false;">Mod 10 §10.2</a></td>
       </tr>
 
       <tr>
@@ -5628,7 +5905,7 @@ mvn test -q
   </table>
 
   <div class="nav-row">
-    <button class="nav-btn" onclick="show(8)">← Modulo 9</button>
+    <button class="nav-btn" onclick="show(9)">← Modulo 10</button>
     <button class="nav-btn next" onclick="showMod('index')">Indice dei concetti →</button>
   </div>
 </div>
@@ -5681,6 +5958,7 @@ mvn test -q
       <div><a class="xref" href="#" onclick="showAndScroll(2,'sec-detached-head-mod3');return false;">Detached HEAD</a> — Mod 3</div>
       <div><a class="xref" href="#" onclick="showAndScroll(3,'sec-divergenza-mod4');return false;">3.6 — Divergenza locale/remota</a> — Mod 4</div>
       <div><a class="xref" href="#" onclick="showAndScroll(3,'sec-divergenza-check-mod4');return false;">Divergenza — controllare senza cambiare branch</a> — Mod 4</div>
+      <div><a class="xref" href="#" onclick="showAndScroll(9,'sec-idea-doppio-binario-mod10');return false;">Doppio binario (GitFlow avanzato)</a> — Mod 10</div>
     </div>
   </div>
 
@@ -5696,6 +5974,7 @@ mvn test -q
     <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text3);text-transform:uppercase;margin-bottom:8px;">G</div>
     <div style="font-size:13px;line-height:2;">
       <div><a class="xref" href="#" onclick="showAndScroll(0,'sec-cose-git-mod1');return false;">Garbage collector (gc)</a> — Mod 1 (cenno) · Mod 9</div>
+      <div><a class="xref" href="#" onclick="showAndScroll(9,'sec-confronto-tre-modi-mod10');return false;">GitFlow — confronto tra tre approcci</a> — Mod 10</div>
     </div>
   </div>
 

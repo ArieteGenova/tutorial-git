@@ -310,13 +310,26 @@
 
   <div class="mod-group" id="group-6">
     <button class="mod-btn" onclick="showMod(6)">
+      <span class="mod-dot dot-coral"></span>
+      <span class="mod-btn-text"><strong>Fase 7</strong><span class="mod-label">Doppio binario 🎋</span></span>
+      <span class="mod-chevron">▸</span>
+    </button>
+    <div class="mod-sections">
+      <a class="sec-link" href="#" onclick="showAndScroll(6,'f7-setup');return false;">7.1 — Setup dei due branch</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(6,'f7-cherry-immediato');return false;">7.2 — Cherry-pick immediato</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(6,'f7-chiusura');return false;">7.3 — Chiusura: merge su dev e PR su integration</a>
+    </div>
+  </div>
+
+  <div class="mod-group" id="group-7">
+    <button class="mod-btn" onclick="showMod(7)">
       <span class="mod-dot dot-amber"></span>
       <span class="mod-btn-text"><strong>Riepilogo</strong><span class="mod-label">Comandi &amp; tabelle</span></span>
       <span class="mod-chevron">▸</span>
     </button>
     <div class="mod-sections">
-      <a class="sec-link" href="#" onclick="showAndScroll(6,'riepilogo-reset');return false;">Tabella reset</a>
-      <a class="sec-link" href="#" onclick="showAndScroll(6,'riepilogo-comandi');return false;">Tutti i comandi</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(7,'riepilogo-reset');return false;">Tabella reset</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(7,'riepilogo-comandi');return false;">Tutti i comandi</a>
     </div>
   </div>
 
@@ -1563,12 +1576,109 @@ git push origin dev</code></pre>
 
   <div class="nav-row">
     <button class="nav-btn" onclick="showMod(4)">← Fase 5</button>
-    <button class="nav-btn next" onclick="showMod(6)">Riepilogo →</button>
+    <button class="nav-btn next" onclick="showMod(6)">Fase 7 — Doppio binario →</button>
+  </div>
+</div>
+
+<!-- ========== FASE 7 — DOPPIO BINARIO ========== -->
+<div class="mod-page" id="mod-6">
+  <div class="page-eyebrow eyebrow-coral">Fase 7 — Modulo 10 del tutorial</div>
+  <h1>Doppio binario 🎋</h1>
+  <p class="page-sub">Due branch paralleli per feature — cherry-pick sempre a caldo, mai a freddo.</p>
+
+  <h2 id="f7-setup">7.1 — Setup dei due branch</h2>
+  <p>Simuli una feature di login. Assicurati prima che <code>dev</code> e <code>integration</code> locali siano aggiornati (se sul tuo repo di pratica non esiste ancora <code>integration</code>, creala da <code>dev</code> una tantum: <code>git switch dev &amp;&amp; git switch -c integration &amp;&amp; git push -u origin integration</code>).</p>
+
+  <pre><code>git fetch origin
+git switch dev
+git pull
+git switch integration
+git pull
+
+# Binario dev — qui lavori liberamente
+git switch dev
+git switch -c feature/login-dev
+git push -u origin feature/login-dev
+
+# Binario integration — qui finisce solo roba stabile
+git switch integration
+git switch -c feature/login-int
+git push -u origin feature/login-int</code></pre>
+
+  <div class="log-annotation">
+    <strong>Cosa hai appena creato:</strong> due branch che partono da punti diversi della storia. <code>feature/login-dev</code> punta all'ultimo commit di <code>dev</code>, <code>feature/login-int</code> punta all'ultimo commit di <code>integration</code>. Se in questo momento <code>dev</code> e <code>integration</code> coincidono, per ora i due branch puntano allo stesso commit — la differenza si vedrà quando inizi a lavorare.
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Perché pushi subito anche il binario "sporco"</div>
+    <p>Pusha entrambi i branch con <code>-u</code> appena creati, prima ancora di scrivere codice: serve da backup e imposta il tracking. Su <code>feature/login-dev</code> non aprirai mai una PR, quindi nessuno lo revisiona finché non decidi tu — ma se non lo pushi ora, il <code>git push origin --delete feature/login-dev</code> di fine esercizio (§7.3) fallisce, perché non esisterebbe niente da cancellare su origin.</p>
+  </div>
+
+  <hr class="divider" id="f7-cherry-immediato">
+  <h2>7.2 — Cherry-pick immediato</h2>
+  <p>Lavora su <code>feature/login-dev</code> con commit liberi, anche sporchi:</p>
+
+  <pre><code>git switch feature/login-dev
+# crea/modifica login-form.txt, poi:
+git add . && git commit -m "WIP: struttura form login"
+# altra modifica:
+git add . && git commit -m "WIP: aggiungo validazione lato client"
+# modifica finale, stabile:
+git add . && git commit -m "feat: validazione email e password con messaggi di errore"
+git log --oneline -3   # prendi nota dell'hash dell'ultimo commit</code></pre>
+
+  <p>Appena il commit è stabile — non a fine giornata, <strong>subito</strong> — promuovilo sul binario integration:</p>
+
+  <pre><code>git switch feature/login-int
+git cherry-pick &lt;hash-del-commit-stabile&gt;
+git push origin feature/login-int
+git switch feature/login-dev   # torni a lavorare</code></pre>
+
+  <h3>Log dei due binari a confronto</h3>
+  <div class="git-log"><span class="g">* </span><span class="h">a1b2c3d</span> <span class="rf">(HEAD -&gt; feature/login-dev)</span> feat: validazione email e password con messaggi di errore
+<span class="g">* </span><span class="h">08a286e</span> WIP: aggiungo validazione lato client
+<span class="g">* </span><span class="h">cb59bf6</span> WIP: struttura form login
+<span class="g">* </span><span class="h">df53ee5</span> <span class="ro">(origin/dev, dev)</span> spostato dashboard di cartella</div>
+  <div class="git-log"><span class="g">* </span><span class="h">e4f5g6h</span> <span class="r">(HEAD -&gt; feature/login-int)</span> feat: validazione email e password con messaggi di errore
+<span class="g">* </span><span class="h">7f8a9b1</span> <span class="ro">(origin/integration, integration)</span> setup iniziale integration</div>
+  <div class="log-annotation">
+    <strong>Nota l'hash diverso</strong> (<code>e4f5g6h</code> vs <code>a1b2c3d</code>): è un nuovo commit con lo stesso diff, non lo stesso commit spostato. E nota cosa <strong>manca</strong> su <code>feature/login-int</code>: i due commit WIP non ci sono — solo quello stabile è stato promosso.
+  </div>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Non aspettare</div>
+    <p>Ripeti questo schema per ogni commit stabile successivo. Se accumuli più commit maturi senza cherry-pickarli subito, il contesto si raffredda e torni al problema del cherry-pick "a freddo" che questo workflow vuole evitare.</p>
+  </div>
+
+  <hr class="divider" id="f7-chiusura">
+  <h2>7.3 — Chiusura: merge su dev e PR su integration</h2>
+  <p>Quando la feature è completa, chiudi il binario dev con il solito merge <code>--no-ff</code> — qui finisce tutto, WIP compresi:</p>
+
+  <pre><code>git switch dev
+git merge --no-ff feature/login-dev -m "Merge feature/login-dev: feature login completa"
+git push origin dev
+git branch -d feature/login-dev
+git push origin --delete feature/login-dev</code></pre>
+
+  <p>Sul binario integration non serve altro: <code>feature/login-int</code> ha già tutti i commit stabili. Nella pratica reale, a questo punto apriresti la PR <code>feature/login-int → integration</code> su Azure DevOps, spuntando "Delete source branch after merging".</p>
+
+  <div class="log-annotation">
+    <strong>Confronto finale:</strong> <code>dev</code> contiene la storia completa della feature (WIP inclusi). <code>integration</code> contiene solo i commit che hai esplicitamente promosso — una storia più corta e già "pronta per la release", senza bisogno di cherry-pick dell'ultimo minuto.
+  </div>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">Perché conviene rispetto al cherry-pick tardivo</div>
+    <p>Prova a confrontare questo esercizio con la Fase 6 — Cherry-pick base: lì il cherry-pick avviene su un commit già esistente, magari vecchio. Qui il cherry-pick avviene a pochi secondi dalla scrittura del commit — stesso comando, contesto completamente diverso.</p>
+  </div>
+
+  <div class="nav-row">
+    <button class="nav-btn" onclick="showMod(5)">← Fase 6</button>
+    <button class="nav-btn next" onclick="showMod(7)">Riepilogo →</button>
   </div>
 </div>
 
 <!-- ========== RIEPILOGO ========== -->
-<div class="mod-page" id="mod-6">
+<div class="mod-page" id="mod-7">
   <div class="page-eyebrow eyebrow-amber">Riepilogo</div>
   <h1>Comandi &amp; Tabelle</h1>
   <p class="page-sub">Tutto quello che serve sempre a portata di mano.</p>
@@ -1630,7 +1740,7 @@ git push origin dev</code></pre>
   </div>
 
   <div class="nav-row">
-    <button class="nav-btn" onclick="showMod(5)">← Fase 6</button>
+    <button class="nav-btn" onclick="showMod(6)">← Fase 7</button>
   </div>
 </div>
 
