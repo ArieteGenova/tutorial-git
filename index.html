@@ -2839,8 +2839,8 @@ git reflog | grep "feature/login"</code></pre>
 
   <pre><code><span class="cm"># Aggiorna il tuo branch con gli ultimi commit di dev</span>
 git fetch
-git merge origin/dev    <span class="cm"># oppure: git rebase origin/dev (→ Modulo 6)</span>
-git push
+git rebase origin/dev    <span class="cm"># oppure: git merge origin/dev se il branch è già condiviso (→ Modulo 6 §6.7)</span>
+git push --force-with-lease    <span class="cm"># necessario dopo il rebase: gli hash sono cambiati (→ Modulo 6 §6.3)</span>
 
 <span class="cm"># Ora la PR non ha divergenze — il review è più pulito</span></code></pre>
 
