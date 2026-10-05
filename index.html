@@ -1334,6 +1334,18 @@ R087    Utils.java    UtilsHelper.java</code></pre>
     <p>Un file <strong>nuovo e non ancora aggiunto</strong> con <code>git add</code> (untracked) non compare in <code>git diff</code>, con nessuna di queste opzioni. La lettera <code>A</code> la vedi solo dopo <code>git add</code> (con <code>--staged</code>) oppure quando confronti due commit o due branch. Per i file untracked usa <code>git status</code>.</p>
   </div>
 
+  <p><strong>Come si leggono le lettere.</strong> Il significato di <code>A</code>, <code>M</code>, <code>D</code> è sempre relativo a <em>cosa stai confrontando</em>, e si legge come "cosa è cambiato per passare dal primo termine al secondo":</p>
+
+  <table class="anatomy">
+    <thead><tr><th>Confronto</th><th>Come leggere le lettere</th></tr></thead>
+    <tbody>
+      <tr><td class="part">git diff --staged</td><td class="desc"><code>A</code>: il file è in staging ma non esiste nell'ultimo commit. <code>M</code>: il file esiste già nell'ultimo commit e ha modifiche in staging. <code>D</code>: hai cancellato il file e la cancellazione è in staging</td></tr>
+      <tr><td class="part">git diff --name-status HEAD...origin/dev</td><td class="desc"><code>A</code>: il file esiste su <code>dev</code> ma non esisteva nel punto da cui ti sei staccato. <code>M</code>: il file è stato modificato su <code>dev</code> rispetto a quel punto. <code>D</code>: il file è stato cancellato su <code>dev</code></td></tr>
+    </tbody>
+  </table>
+
+  <p>Attenzione all'ordine dei termini. Con il confronto diretto, <code>git diff --name-status HEAD origin/dev</code> e <code>git diff --name-status origin/dev HEAD</code> mostrano lo stesso elenco con il punto di vista ribaltato: ciò che era <code>A</code> diventa <code>D</code> e viceversa. Con i tre puntini invece <code>origin/dev...HEAD</code> non è il ribaltamento di <code>HEAD...origin/dev</code>: mostra cosa è cambiato sul <em>tuo</em> branch rispetto alla merge base, non su <code>dev</code>.</p>
+
   <p>Queste opzioni diventano particolarmente utili quando confronti due branch o un branch col remote, per esempio prima di una PR o di un cherry-pick: <code>git diff --name-status HEAD...origin/dev</code> ti dice subito cosa è cambiato su <code>dev</code> dalla tua merge base (→ <a href="#" class="xref" onclick="showAndScroll(3,'sec-azure-pr-mod4');return false;">§4.6</a> e <a href="#" class="xref" onclick="showAndScroll(4,'sec-merge-base-manuale-mod5');return false;">§5.3</a> per la sintassi coi tre puntini).</p>
 
   <div class="callout callout-tip">
