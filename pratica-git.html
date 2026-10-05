@@ -322,6 +322,21 @@
     </div>
   </div>
 
+  <div class="mod-group" id="group-8">
+    <button class="mod-btn" onclick="showMod(8)">
+      <span class="mod-dot dot-amber"></span>
+      <span class="mod-btn-text"><strong>Fase 8</strong><span class="mod-label">Integrare più feature branch 🧩</span></span>
+      <span class="mod-chevron">▸</span>
+    </button>
+    <div class="mod-sections">
+      <a class="sec-link" href="#" onclick="showAndScroll(8,'f8-setup');return false;">8.1 — Preparare lo scenario</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(8,'f8-merge');return false;">8.2 — Merge in sequenza</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(8,'f8-trappola');return false;">8.3 — La trappola: storia sì, codice no</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(8,'f8-recupero');return false;">8.4 — Recuperare i file</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(8,'f8-push');return false;">8.5 — Verifica finale e push</a>
+    </div>
+  </div>
+
   <div class="mod-group" id="group-7">
     <button class="mod-btn" onclick="showMod(7)">
       <span class="mod-dot dot-amber"></span>
@@ -1806,6 +1821,244 @@ git push origin --delete feature/login-dev</code></pre>
 
   <div class="nav-row">
     <button class="nav-btn" onclick="showMod(5)">← Fase 6</button>
+    <button class="nav-btn next" onclick="showMod(8)">Fase 8 — Integrare più feature branch →</button>
+  </div>
+</div>
+
+<!-- ========== FASE 8 — INTEGRARE PIÙ FEATURE BRANCH ========== -->
+<div class="mod-page" id="mod-8">
+  <div class="page-eyebrow eyebrow-amber">Fase 8 — Modulo 5 del tutorial (§5.10)</div>
+  <h1>Integrare più feature branch 🧩</h1>
+  <p class="page-sub">Porti diversi feature branch su un branch di integrazione condiviso. I merge vanno a buon fine, ma parte del codice non arriva: impari ad accorgertene e a recuperarlo senza toccare il lavoro degli altri.</p>
+
+  <h2 id="f8-setup">8.1 — Preparare lo scenario</h2>
+  <p>La situazione da riprodurre:</p>
+  <ul>
+    <li><code>feature/report</code> aggiunge <code>report.txt</code> e <code>report-helper.txt</code> e attiva una riga in <code>config.txt</code>;</li>
+    <li><code>feature/report-2</code> nasce da <code>feature/report</code> e aggiunge una riga a <code>report.txt</code>;</li>
+    <li>su <code>release/1.0</code> un collega aggiunge una riga sua in fondo a <code>config.txt</code>, poi integra <code>feature/report</code> <strong>risolvendo male il merge</strong>: tiene solo i suoi file.</li>
+  </ul>
+
+  <pre><code># --- base comune su dev ---
+git switch dev
+# crea config.txt con 10 righe, una per riga:
+#   timeout=30  retry=3  log.level=INFO  cache=on  lang=it
+#   theme=dark  page.size=50  export.format=pdf  timezone=Europe/Rome  max.users=100
+git add config.txt &amp;&amp; git commit -m "setup iniziale"
+git push origin dev
+
+git switch -c release/1.0
+git push -u origin release/1.0
+
+# --- feature/report: parte da dev ---
+git switch dev
+git switch -c feature/report
+# crea report.txt         → "report: intestazione"
+# crea report-helper.txt  → "helper: formattazione date"
+# config.txt: aggiungi "report.enabled=true" come 2ª riga (sotto timeout=30)
+git add . && git commit -m "feat: report base"
+
+# --- feature/report-2: continua da feature/report ---
+git switch -c feature/report-2
+# report.txt: aggiungi la riga "report: tabella dettagli"
+git add . && git commit -m "feat: report tabella dettagli"
+git push -u origin feature/report feature/report-2
+
+# --- il collega su release/1.0 ---
+git switch release/1.0
+# config.txt: aggiungi in FONDO "release.version=1.0"
+git add . && git commit -m "chore: versione release"
+git merge -s ours --no-ff feature/report -m "Merge feature/report into release/1.0"
+git push origin release/1.0</code></pre>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Perché config.txt ha 10 righe</div>
+    <p>La riga del feature branch (in alto) e quella del collega (in fondo) devono essere lontane: così in §8.4 <code>git checkout -p</code> le propone come due blocchi separati e puoi accettarne uno solo.</p>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Cosa simula <code>-s ours</code></div>
+    <p>La strategia <code>ours</code> registra il merge nella storia ma <strong>scarta tutto il contenuto</strong> del branch mergiato. È l'equivalente, in un solo comando, di un collega che risolve i conflitti scegliendo sempre la propria versione. Da qui in poi per Git <code>feature/report</code> risulta "già integrato", anche se i suoi file non ci sono.</p>
+  </div>
+
+  <h3>Log dopo il setup</h3>
+  <div class="git-log"><span class="g">* </span><span class="h">a874d2d</span> <span class="rf">(origin/feature/report-2, feature/report-2)</span> feat: report tabella dettagli
+<span class="g">| *   </span><span class="h">cc204d1</span> <span class="r">(HEAD -&gt; release/1.0, </span><span class="ro">origin/release/1.0</span><span class="r">)</span> <span class="m">Merge feature/report into release/1.0</span>
+<span class="g">| |\
+| |/
+|/|
+* | </span><span class="h">4ff609d</span> <span class="rf">(origin/feature/report, feature/report)</span> feat: report base
+<span class="g">| * </span><span class="h">816d0c1</span> chore: versione release
+<span class="g">|/
+* </span><span class="h">9f947a3</span> <span class="ro">(origin/dev, dev)</span> setup iniziale</div>
+
+  <hr class="divider" id="f8-merge">
+  <h2>8.2 — Merge in sequenza</h2>
+  <p>Ora tocca a te: devi portare i tuoi feature branch su <code>release/1.0</code>. Prima di tutto ordinali per data dell'ultimo commit, così unisci le modifiche nell'ordine in cui sono nate e risolvi i conflitti un passo alla volta:</p>
+
+  <pre><code>git fetch origin
+git branch -r --sort=committerdate --list 'origin/feature/*' --format='%(committerdate:format:%d/%m/%Y %H:%M)  %(refname:short)'</code></pre>
+  <div class="git-log">05/10/2026 13:28  origin/feature/report
+05/10/2026 13:28  origin/feature/report-2</div>
+
+  <p>Prima di iniziare crea un segnaposto, così puoi tornare a questo punto in qualsiasi momento:</p>
+  <pre><code>git switch release/1.0
+git pull
+git branch backup-prima-integrazione</code></pre>
+
+  <p>Poi lancia i merge uno alla volta, nell'ordine trovato:</p>
+  <pre><code>git merge --no-ff origin/feature/report</code></pre>
+  <div class="git-log">Already up to date.</div>
+  <div class="log-annotation">
+    <strong>"Already up to date"</strong> vuol dire che tutti i commit di <code>feature/report</code> sono già nella <strong>storia</strong> di <code>release/1.0</code>, quindi Git non fa niente. Attenzione: Git controlla la storia, <strong>non il contenuto dei file</strong>. Qui i commit ci sono (grazie al merge del collega), ma il codice no.
+  </div>
+
+  <pre><code>git merge --no-ff origin/feature/report-2</code></pre>
+  <div class="git-log">CONFLICT (modify/delete): report.txt deleted in HEAD and modified in feature/report-2.  Version feature/report-2 of report.txt left in tree.
+Automatic merge failed; fix conflicts and then commit the result.</div>
+
+  <pre><code>git status</code></pre>
+  <div class="git-log">Unmerged paths:
+  (use "git add/rm &lt;file&gt;..." as appropriate to mark resolution)
+	deleted by us:   report.txt</div>
+  <div class="log-annotation">
+    <strong>"deleted by us"</strong>: dal punto di vista di <code>release/1.0</code> (<em>us</em>) il file non c'è, mentre <code>feature/report-2</code> lo ha modificato. Git ti chiede se tenerlo o cancellarlo. Questo conflitto è il primo indizio che qualcosa si è perso prima.
+  </div>
+
+  <p>Il file ti serve, quindi lo tieni e chiudi il merge:</p>
+  <pre><code>git add report.txt          # tieni il file   (per eliminarlo: git rm report.txt)
+git commit --no-edit</code></pre>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Conflitti di versione</div>
+    <p>Nei progetti reali il conflitto più frequente in questi merge è sul numero di versione (<code>pom.xml</code>, <code>package.json</code>, …): ogni feature branch ha la sua. Decidi <strong>una</strong> versione per il branch di integrazione e tienila in tutti i file. Nel merge tool dell'IDE il pannello di sinistra è il branch su cui sei, quello di destra il branch che stai unendo; il pannello centrale parte dalla <em>merge base</em>, non dalla tua versione.</p>
+  </div>
+
+  <hr class="divider" id="f8-trappola">
+  <h2>8.3 — La trappola: storia sì, codice no</h2>
+  <p>I merge sono finiti senza errori. Prima di pushare, controlla che il codice di <strong>tutti</strong> i feature branch sia davvero arrivato.</p>
+
+  <h3>Controllo 1 — La storia (ingannevole)</h3>
+  <pre><code>git merge-base --is-ancestor origin/feature/report-2 HEAD &amp;&amp; echo si || echo no</code></pre>
+  <div class="git-log">si</div>
+  <div class="log-annotation">
+    <code>--is-ancestor</code> risponde a una sola domanda: "i commit di questo branch sono nella storia di HEAD?". La risposta è <strong>sì</strong>, ma questo non garantisce che il loro contenuto sia sopravvissuto.
+  </div>
+
+  <h3>Controllo 2 — I file (quello che conta)</h3>
+  <pre><code>git diff --name-status HEAD origin/feature/report-2</code></pre>
+  <div class="git-log">M	config.txt
+A	report-helper.txt</div>
+  <div class="log-annotation">
+    Confronti direttamente <strong>i file</strong> dei due branch.<br>
+    <code>A report-helper.txt</code>: il file esiste nel feature branch ma <strong>non nel tuo</strong>. Non ha generato conflitti perché <code>feature/report-2</code> non l'ha toccato: è sparito in silenzio.<br>
+    <code>M config.txt</code>: il file esiste in entrambi ma è diverso.
+  </div>
+
+  <h3>Controllo 3 — Quante righe guadagni e quante perdi</h3>
+  <pre><code>git diff --numstat HEAD origin/feature/report-2</code></pre>
+  <div class="git-log">1	1	config.txt
+1	0	report-helper.txt</div>
+  <div class="log-annotation">
+    Prima colonna: righe che hai solo nel feature branch (ti <strong>mancano</strong>). Seconda colonna: righe che hai solo tu (le <strong>perderesti</strong> sovrascrivendo il file).<br>
+    <code>1 0 report-helper.txt</code>: sovrascriverlo non toglie niente → si può prendere intero.<br>
+    <code>1 1 config.txt</code>: c'è una riga che hai solo tu (quella del collega) → <strong>non</strong> va sovrascritto intero.
+  </div>
+
+  <h3>Controllo 4 — Chi l'ha fatto sparire</h3>
+  <pre><code>git log --oneline --full-history -- report-helper.txt</code></pre>
+  <div class="git-log"><span class="h">9c00830</span> <span class="m">Merge branch 'feature/report-2' into release/1.0</span>
+<span class="h">cc204d1</span> <span class="m">Merge feature/report into release/1.0</span>
+<span class="h">4ff609d</span> feat: report base</div>
+  <div class="log-annotation">
+    Senza <code>--full-history</code> Git semplifica la storia e spesso non mostra i merge che hanno scartato un file. Con l'opzione compaiono: il file nasce in <code>4ff609d</code> e il primo merge che lo "perde" è <code>cc204d1</code>, quello del collega. Utile per sapere a chi chiedere conferma.
+  </div>
+
+  <hr class="divider" id="f8-recupero">
+  <h2>8.4 — Recuperare i file</h2>
+  <p>Per Git il lavoro è "già unito", quindi un altro merge non porta niente. Il codice va preso <strong>direttamente dai file</strong> del feature branch.</p>
+
+  <h3>File da prendere interi</h3>
+  <pre><code>git checkout origin/feature/report-2 -- report-helper.txt</code></pre>
+  <div class="log-annotation">
+    <code>git checkout &lt;branch&gt; -- &lt;file&gt;</code> copia il file così com'è su <code>&lt;branch&gt;</code> nella tua cartella di lavoro e lo mette in stage. <strong>Non</strong> cambia branch, <strong>non</strong> tocca altri file e <strong>non</strong> fa commit. Il <code>--</code> separa il branch dai percorsi. Equivalente moderno: <code>git restore --source origin/feature/report-2 --staged --worktree report-helper.txt</code>.
+  </div>
+
+  <h3>File condivisi: solo i blocchi tuoi</h3>
+  <pre><code>git checkout -p origin/feature/report-2 -- config.txt</code></pre>
+  <div class="git-log">@@ -1,4 +1,5 @@
+ timeout=30
+<span class="r">+report.enabled=true</span>
+ retry=3
+ log.level=INFO
+ cache=on
+(1/2) Apply this hunk to index and worktree [y,n,q,a,d,k,K,j,J,g,/,e,p,P,?]? <span class="r">y</span>
+@@ -8,4 +9,3 @@ page.size=50
+ export.format=pdf
+ timezone=Europe/Rome
+ max.users=100
+<span style="color:var(--coral)">-release.version=1.0</span>
+(2/2) Apply this hunk to index and worktree [y,n,q,a,d,K,J,g,/,e,p,P,?]? <span style="color:var(--coral)">n</span></div>
+  <div class="log-annotation">
+    Con <code>-p</code> (<em>patch</em>) Git ti propone un blocco alla volta. Le righe <code>+</code> verrebbero <strong>aggiunte</strong>, le righe <code>-</code> <strong>tolte</strong>.<br>
+    Blocco 1: aggiunge la tua riga → <code>y</code>.<br>
+    Blocco 2: toglierebbe la riga del collega → <code>n</code>.<br>
+    Altri tasti utili: <code>s</code> divide un blocco in parti più piccole, <code>q</code> esce tenendo i blocchi già accettati.
+  </div>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">Se sbagli una risposta</div>
+    <p>Riporta il file com'era e ripeti: <code>git checkout HEAD -- config.txt</code>, poi di nuovo <code>git checkout -p …</code>. Per buttare via tutto il recupero: <code>git reset --hard backup-prima-integrazione</code>.</p>
+  </div>
+
+  <hr class="divider" id="f8-push">
+  <h2>8.5 — Verifica finale e push</h2>
+  <pre><code>git diff --cached          # cosa entrerà nel commit
+git diff --cached --check  # nessun output = nessun marker di conflitto dimenticato</code></pre>
+  <div class="git-log">diff --git a/config.txt b/config.txt
+@@ -1,4 +1,5 @@
+ timeout=30
+<span class="r">+report.enabled=true</span>
+ retry=3
+diff --git a/report-helper.txt b/report-helper.txt
+new file mode 100644
+@@ -0,0 +1 @@
+<span class="r">+helper: formattazione date</span></div>
+  <div class="log-annotation">
+    Solo righe <code>+</code>: hai recuperato il tuo codice senza togliere niente agli altri.
+  </div>
+
+  <pre><code>git commit -m "fix: ripristino codice di feature/report perso nel merge di integrazione"
+git diff --numstat HEAD origin/feature/report-2</code></pre>
+  <div class="git-log">0	1	config.txt</div>
+  <div class="log-annotation">
+    Prima colonna a <code>0</code>: non ti manca più niente del feature branch. L'<code>1</code> rimasto è la riga del collega, che il feature branch non ha: è giusto che resti.
+  </div>
+
+  <p>Prima del push guarda cosa sta per salire, senza i commit interni dei feature branch:</p>
+  <pre><code>git fetch origin
+git log --oneline --first-parent origin/release/1.0..HEAD</code></pre>
+  <div class="git-log"><span class="h">1618de9</span> <span class="r">(HEAD -&gt; release/1.0)</span> fix: ripristino codice di feature/report perso nel merge di integrazione
+<span class="h">9c00830</span> <span class="m">Merge branch 'feature/report-2' into release/1.0</span></div>
+  <div class="log-annotation">
+    <code>--first-parent</code> segue solo la "linea principale" del branch: vedi i merge e i tuoi commit, non i commit dei feature branch entrati con i merge. Il merge di <code>feature/report</code> non c'è perché era "Already up to date". Se <code>git status</code> dice "ahead 3", è normale: il terzo è il commit di <code>feature/report-2</code> agganciato dal merge.
+  </div>
+
+  <pre><code>git push origin release/1.0
+git branch -D backup-prima-integrazione   # quando sei sicuro</code></pre>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Niente <code>git add .</code> durante un recupero</div>
+    <p>Aggiungi i file per nome. <code>git add .</code> mette in stage anche file non tracciati che non c'entrano (export, appunti, cartelle dell'IDE) e li porta su con il push.</p>
+  </div>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">La lezione</div>
+    <p>Dopo ogni integrazione di più branch, il controllo da fare non è "il merge è andato a buon fine?" ma "<strong>il codice c'è?</strong>": <code>git diff --name-status HEAD origin/feature/x</code> per ogni feature branch. Ci vogliono pochi secondi e ti evita di scoprirlo in collaudo.</p>
+  </div>
+
+  <div class="nav-row">
+    <button class="nav-btn" onclick="showMod(6)">← Fase 7</button>
     <button class="nav-btn next" onclick="showMod(7)">Riepilogo →</button>
   </div>
 </div>
@@ -1868,16 +2121,26 @@ git push origin --delete feature/login-dev</code></pre>
       <tr><td class="part">git pull --rebase origin dev</td><td class="desc">Dal feature branch: riapplica i tuoi commit sopra quelli di dev (forma esplicita)</td></tr>
       <tr><td class="part">git pull origin &lt;branch&gt;</td><td class="desc">fetch + merge — allinea il locale al remoto</td></tr>
       <tr><td class="part">git status</td><td class="desc">Stato attuale: branch, staging, divergenze</td></tr>
+      <tr><td class="part">git branch -r --sort=committerdate</td><td class="desc">Branch remoti ordinati per data dell'ultimo commit (Fase 8.2)</td></tr>
+      <tr><td class="part">git branch &lt;backup&gt;</td><td class="desc">Segnaposto locale sul commit attuale, per tornarci con <code>reset --hard</code></td></tr>
+      <tr><td class="part">git merge-base --is-ancestor A B</td><td class="desc">A è nella storia di B? Controlla la storia, non il contenuto (Fase 8.3)</td></tr>
+      <tr><td class="part">git diff --name-status HEAD &lt;branch&gt;</td><td class="desc">File diversi tra i due branch: <code>A</code> = esiste solo nell'altro (Fase 8.3)</td></tr>
+      <tr><td class="part">git diff --numstat HEAD &lt;branch&gt;</td><td class="desc">Per file: righe che ti mancano / righe che perderesti sovrascrivendo</td></tr>
+      <tr><td class="part">git log --full-history -- &lt;file&gt;</td><td class="desc">Storia del file inclusi i merge che lo hanno scartato</td></tr>
+      <tr><td class="part">git checkout &lt;branch&gt; -- &lt;file&gt;</td><td class="desc">Copia il file da un altro branch, senza cambiare branch (Fase 8.4)</td></tr>
+      <tr><td class="part">git checkout -p &lt;branch&gt; -- &lt;file&gt;</td><td class="desc">Come sopra, ma un blocco alla volta: <code>y</code> / <code>n</code> / <code>s</code></td></tr>
+      <tr><td class="part">git diff --cached --check</td><td class="desc">Segnala marker di conflitto e spazi errati nelle modifiche in stage</td></tr>
+      <tr><td class="part">git log --first-parent A..B</td><td class="desc">Commit da pushare senza quelli interni dei branch mergiati (Fase 8.5)</td></tr>
     </tbody>
   </table>
 
   <div class="callout callout-info">
     <div class="callout-label">Tutto coperto!</div>
-    <p>Tutti gli argomenti avanzati sono ora inclusi nella pratica: <strong>git pull --rebase</strong> (Fase 3.3), <strong>controllo divergenza senza cambiare branch</strong> (Fase 3.4), <strong>rinomina branch</strong> (Fase 1.4), <strong>git diff e le sue opzioni</strong> (Fase 1.5), <strong>pull --rebase dal feature branch</strong> (Fase 3.3), <strong>git restore --source</strong> (Fase 5.5), <strong>disaster recovery completo col reflog</strong> (Fase 5.6), <strong>i 3 scenari di --force-with-lease</strong> (Fase 4.4).</p>
+    <p>Tutti gli argomenti avanzati sono ora inclusi nella pratica: <strong>git pull --rebase</strong> (Fase 3.3), <strong>controllo divergenza senza cambiare branch</strong> (Fase 3.4), <strong>rinomina branch</strong> (Fase 1.4), <strong>git diff e le sue opzioni</strong> (Fase 1.5), <strong>pull --rebase dal feature branch</strong> (Fase 3.3), <strong>git restore --source</strong> (Fase 5.5), <strong>disaster recovery completo col reflog</strong> (Fase 5.6), <strong>i 3 scenari di --force-with-lease</strong> (Fase 4.4), <strong>integrare più feature branch e recuperare il codice perso in un merge</strong> (Fase 8).</p>
   </div>
 
   <div class="nav-row">
-    <button class="nav-btn" onclick="showMod(6)">← Fase 7</button>
+    <button class="nav-btn" onclick="showMod(8)">← Fase 8</button>
   </div>
 </div>
 

@@ -326,6 +326,7 @@
       <a class="sec-link" href="#" onclick="showAndScroll(4,'sec-strategie-merge-mod5');return false;">5.7 — Strategie di merge avanzate</a>
       <a class="sec-link" href="#" onclick="showAndScroll(4,'sec-squash-merge');return false;">5.8 — Squash merge</a>
       <a class="sec-link" href="#" onclick="showAndScroll(4,'sec-prevenire-conflitti');return false;">5.9 — Prevenire i conflitti</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(4,'sec-verifica-integrazione-mod5');return false;">5.10 — Il merge è passato, ma il codice c'è?</a>
     </div>
   </div>
 
@@ -2145,7 +2146,7 @@ git diff HEAD...origin/dev --stat</code></pre>
 <div class="mod-page" id="mod-4">
   <div class="page-eyebrow eyebrow-purple">Modulo 5 · Intermedio</div>
   <h1>Merge e conflitti</h1>
-  <p class="page-sub">Come Git unisce le storie · 3-way merge in dettaglio · anatomia di un conflitto · strategie di risoluzione · merge commit vs squash merge · best practice in team</p>
+  <p class="page-sub">Come Git unisce le storie · 3-way merge in dettaglio · anatomia di un conflitto · strategie di risoluzione · merge commit vs squash merge · best practice in team · verificare che il codice sia davvero arrivato</p>
 
   <h2 id="sec-tre-tipi-merge">5.1 — I tre tipi di merge a colpo d'occhio</h2>
   <p>Prima di entrare nell'algoritmo, ecco una mappa visiva dei tre modi in cui Git (e Azure DevOps) può unire due branch:</p>
@@ -2904,6 +2905,61 @@ git push --force-with-lease    <span class="cm"># necessario dopo il rebase: gli
 
   <hr class="divider">
 
+  <h2 id="sec-verifica-integrazione-mod5">5.10 — Il merge è passato, ma il codice c'è?</h2>
+  <p>Quando porti più feature branch su un branch di integrazione condiviso (una release, un branch di test), può succedere che un merge precedente, fatto da te o da un collega, sia stato <strong>risolto male</strong>: i commit risultano integrati, ma parte dei file è stata scartata nella risoluzione. Da quel momento Git considera quel lavoro "già unito" e non te lo ripropone più.</p>
+  <p>I sintomi tipici:</p>
+  <ul>
+    <li><code>git merge</code> risponde <code>Already up to date.</code> anche se il codice manca;</li>
+    <li>un merge successivo si ferma con <em>deleted by us</em> su un file che invece dovrebbe esserci;</li>
+    <li>la build fallisce per classi o dipendenze "sparite".</li>
+  </ul>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Git controlla la storia, non il contenuto</div>
+    <p>"Already up to date" e un merge senza conflitti vogliono dire solo che i <strong>commit</strong> sono nella storia. Non garantiscono che il loro <strong>contenuto</strong> sia sopravvissuto alle risoluzioni dei merge precedenti.</p>
+  </div>
+
+  <h3>Prima di integrare</h3>
+  <pre><code><span class="cm"># Branch remoti ordinati per data dell'ultimo commit: mergiali in quest'ordine</span>
+git branch -r --sort=committerdate --list <span class="st">'origin/feature/*'</span> --format=<span class="st">'%(committerdate:short)  %(refname:short)'</span>
+
+<span class="cm"># Segnaposto locale per tornare indietro con: git reset --hard backup-integrazione</span>
+git branch backup-integrazione</code></pre>
+
+  <h3>Dopo i merge: verificare il contenuto</h3>
+  <pre><code><span class="cm"># 1. La storia: i commit del branch sono antenati di HEAD? (dice solo questo)</span>
+git merge-base --is-ancestor origin/feature/x HEAD &amp;&amp; echo si || echo no
+
+<span class="cm"># 2. I file: cosa c'è nel feature branch e non da te (A = file che ti manca)</span>
+git diff --name-status HEAD origin/feature/x
+
+<span class="cm"># 3. Le righe: per ogni file, righe che ti mancano / righe che perderesti sovrascrivendolo</span>
+git diff --numstat HEAD origin/feature/x
+
+<span class="cm"># 4. Chi l'ha fatto sparire: storia del file inclusi i merge che lo hanno scartato</span>
+git log --oneline --full-history -- percorso/del/file</code></pre>
+
+  <h3>Recuperare il codice</h3>
+  <p>Un nuovo merge non serve: per Git è già tutto unito. Il codice si prende <strong>dai file</strong> del feature branch:</p>
+  <pre><code><span class="cm"># File da prendere intero (seconda colonna di --numstat a 0: non perdi niente)</span>
+git checkout origin/feature/x -- percorso/del/file
+
+<span class="cm"># File condiviso con altri: un blocco alla volta, y = applica, n = salta, s = dividi</span>
+git checkout -p origin/feature/x -- percorso/del/file
+
+<span class="cm"># Prima del commit: nessun output = nessun marker di conflitto dimenticato</span>
+git diff --cached --check
+
+<span class="cm"># Prima del push: solo i merge e i tuoi commit, senza quelli interni dei feature branch</span>
+git log --oneline --first-parent origin/release/1.0..HEAD</code></pre>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">Provalo dal vivo</div>
+    <p>L'esercizio completo, con lo scenario da riprodurre e gli output reali di ogni comando, è nella <a href="pratica-git.html" target="_blank">Pratica Git — Fase 8: Integrare più feature branch</a>.</p>
+  </div>
+
+  <hr class="divider">
+
   <h2>Anatomia dei comandi — Modulo 5</h2>
 
   <h3>git merge --squash</h3>
@@ -2940,6 +2996,30 @@ git checkout --theirs -- src/config.json</code></pre>
     </tbody>
   </table>
 
+  <h3>git checkout &lt;branch&gt; -- &lt;file&gt; (→ <a href="#" onclick="showAndScroll(4,'sec-verifica-integrazione-mod5');return false;">§5.10</a>)</h3>
+  <pre><code>git checkout -p origin/feature/x -- src/config.json</code></pre>
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">checkout</td><td class="desc">con un percorso di file non cambia branch: copia il file da un altro commit o branch nella cartella di lavoro e lo mette in stage</td></tr>
+      <tr><td class="part">-p</td><td class="desc"><em>patch</em>: invece di copiare il file intero propone un blocco di differenze alla volta (<code>y</code> applica, <code>n</code> salta, <code>s</code> divide, <code>q</code> esce). Senza <code>-p</code> il file viene sovrascritto intero</td></tr>
+      <tr><td class="part">origin/feature/x</td><td class="desc">da dove leggere il file — non viene modificato</td></tr>
+      <tr><td class="part">--</td><td class="desc">separatore: da qui in poi sono percorsi, non nomi di branch</td></tr>
+      <tr><td class="part">src/config.json</td><td class="desc">il file da recuperare, con percorso relativo alla root del repo</td></tr>
+    </tbody>
+  </table>
+
+  <h3>git diff --numstat</h3>
+  <pre><code>git diff --numstat HEAD origin/feature/x</code></pre>
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">--numstat</td><td class="desc">una riga per file con due numeri: righe aggiunte e righe rimosse andando da <code>HEAD</code> a <code>origin/feature/x</code></td></tr>
+      <tr><td class="part">1° numero</td><td class="desc">righe presenti solo nel feature branch → quelle che ti mancano</td></tr>
+      <tr><td class="part">2° numero</td><td class="desc">righe presenti solo in HEAD → quelle che perderesti sovrascrivendo il file. Se è <code>0</code>, puoi prendere il file intero</td></tr>
+    </tbody>
+  </table>
+
   <hr class="divider">
 
   <h2>Riepilogo — Cheat Sheet Modulo 5</h2>
@@ -2957,6 +3037,14 @@ git checkout --theirs -- src/config.json</code></pre>
       <tr><td class="part">git merge-base HEAD feature/x</td><td class="desc">mostra il commit antenato comune — punto di divergenza tra i due branch</td></tr>
       <tr><td class="part">git diff HEAD...feature/x</td><td class="desc">mostra le modifiche di feature/x rispetto alla merge base (triple dot)</td></tr>
       <tr><td class="part">git config --global merge.conflictstyle diff3</td><td class="desc">attiva la visualizzazione della versione originale nei marker di conflitto</td></tr>
+      <tr><td class="part">git branch -r --sort=committerdate</td><td class="desc">branch remoti ordinati per data dell'ultimo commit — l'ordine in cui mergiarli</td></tr>
+      <tr><td class="part">git merge-base --is-ancestor A B</td><td class="desc">verifica se A è nella storia di B — controlla i commit, non il contenuto dei file</td></tr>
+      <tr><td class="part">git diff --numstat HEAD feature/x</td><td class="desc">per ogni file: righe che ti mancano / righe che perderesti sovrascrivendolo</td></tr>
+      <tr><td class="part">git log --full-history -- file</td><td class="desc">storia del file inclusi i merge che lo hanno scartato</td></tr>
+      <tr><td class="part">git checkout feature/x -- file</td><td class="desc">copia il file da un altro branch senza cambiare branch</td></tr>
+      <tr><td class="part">git checkout -p feature/x -- file</td><td class="desc">come sopra, ma un blocco alla volta (y / n / s)</td></tr>
+      <tr><td class="part">git diff --cached --check</td><td class="desc">segnala marker di conflitto rimasti nelle modifiche in stage</td></tr>
+      <tr><td class="part">git log --first-parent A..B</td><td class="desc">solo i merge e i commit diretti del branch, senza quelli interni dei branch mergiati</td></tr>
     </tbody>
   </table>
 
