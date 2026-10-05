@@ -3310,9 +3310,13 @@ reword a3f5c2d feat: aggiunge validazione emial   <span class="cm"># typo nel me
   <h2 id="sec-pull-rebase-mod6">6.6 — git pull --rebase</h2>
   <p>Nel <a href="#" onclick="showAndScroll(3,'sec-pull-rebase-mod4');return false;">Modulo 4 abbiamo già incontrato <code>git pull --rebase</code></a> come alternativa a <code>git pull</code>. Ora che sai come funziona il rebase, è chiaro cosa fa: invece di scaricare i nuovi commit e creare un merge commit, li scarica e ci ri-applica sopra i tuoi commit locali.</p>
 
+  <p><strong>Dove lo lanci.</strong> Il rebase agisce sul branch su cui sei in quel momento: <code>git pull --rebase origin dev</code> prende i commit di <code>dev</code> e ci riapplica sopra i commit del <strong>tuo feature branch</strong>. Quindi lo lanci dal tuo branch (es. <code>feature/login</code>), non da <code>dev</code>. Su <code>dev</code> in genere non hai commit locali tuoi, quindi basta un normale <code>git pull</code>.</p>
+
   <p>La differenza rispetto a un <code>git rebase</code> diretto è che <code>git pull --rebase</code> fa prima il <code>fetch</code> automaticamente — sono equivalenti:</p>
 
-  <pre><code><span class="cm"># Questi due blocchi fanno la stessa cosa:</span>
+  <pre><code>git switch feature/login   <span class="cm"># assicurati di essere sul tuo feature branch, non su dev</span>
+
+<span class="cm"># Questi due blocchi fanno la stessa cosa:</span>
 git fetch
 git rebase origin/dev
 
@@ -3328,18 +3332,21 @@ git pull
 <span class="cm"># forma esplicita: specifica da dove pullare (consigliata per chiarezza)</span>
 git pull --rebase origin dev
 
-<span class="cm"># forma breve: funziona solo se il tracking branch è già configurato</span>
-<span class="cm"># (lo è automaticamente dopo il primo git push -u origin &lt;branch&gt;)</span>
+<span class="cm"># forma breve: rebasa sul tracking branch del branch corrente. Sul tuo feature</span>
+<span class="cm"># branch (dopo git push -u origin feature/login) è origin/feature/login, la tua</span>
+<span class="cm"># copia remota: NON porta dentro i commit di dev. Per sincronizzarti con dev</span>
+<span class="cm"># dal feature branch usa la forma esplicita qui sopra.</span>
 git pull --rebase
 
 <span class="cm"># Se il tracking branch NON è configurato, git pull --rebase dà questo errore:</span>
 <span class="cm"># There is no tracking information for the current branch.</span>
 <span class="cm"># Please specify which branch you want to rebase against.</span>
-<span class="cm"># → soluzione 1: usa la forma esplicita</span>
+<span class="cm"># → soluzione: usa la forma esplicita (sei già su feature/login)</span>
 git pull --rebase origin dev
-<span class="cm"># → soluzione 2: configura il tracking branch e poi usa la forma breve</span>
-git branch --set-upstream-to=origin/dev feature/login
-git pull --rebase
+<span class="cm"># Evita di puntare il tracking di feature/login a origin/dev</span>
+<span class="cm"># (git branch --set-upstream-to=origin/dev): con la configurazione di default</span>
+<span class="cm"># di Git il successivo git push dal feature branch verrebbe rifiutato, perché</span>
+<span class="cm"># il nome dell'upstream (dev) non coincide con quello del branch (feature/login).</span>
 
 <span class="cm"># Puoi impostarlo come comportamento default</span>
 git config --global pull.rebase true</code></pre>
