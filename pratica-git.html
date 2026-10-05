@@ -236,6 +236,7 @@
       <a class="sec-link" href="#" onclick="showAndScroll(0,'f1-noff');return false;">1.2 — Merge con --no-ff</a>
       <a class="sec-link" href="#" onclick="showAndScroll(0,'f1-log');return false;">1.3 — Leggere il log</a>
       <a class="sec-link" href="#" onclick="showAndScroll(0,'f1-rename');return false;">1.4 — Rinominare un branch</a>
+      <a class="sec-link" href="#" onclick="showAndScroll(0,'f1-diff');return false;">1.5 — git diff</a>
     </div>
   </div>
 
@@ -604,6 +605,81 @@ git push origin --delete feature/tabelle    <span class="cm"># elimina il vecchi
     <p>Senza l'ultimo comando ti ritrovi con due branch paralleli su Azure DevOps — uno vivo e uno "fantasma" col nome vecchio.</p>
   </div>
 
+  <hr class="divider" id="f1-diff">
+  <h2>1.5 — git diff: vedere cosa è cambiato, senza committare</h2>
+  <p>Esercizio rapido su <code>git diff</code> (→ Modulo 2, §2.7). <strong>Non crea nessun commit</strong> e alla fine lascia il repo come l'ha trovato, quindi non altera i log delle fasi successive. Puoi farlo su qualsiasi branch.</p>
+
+  <h3>Parte 1 — Modifiche non in staging</h3>
+  <pre><code># Prepara due cambiamenti:
+# a) aggiungi UNA riga a un file già committato (qui lo chiamiamo login.txt)
+# b) crea un file nuovo di UNA riga, diff-nuovo.txt, senza fare git add
+
+git status
+git diff
+git diff --name-only
+git diff --name-status
+git diff --stat</code></pre>
+
+  <h3>Output atteso</h3>
+  <pre><code>$ git diff --name-only
+login.txt
+
+$ git diff --name-status
+M       login.txt
+
+$ git diff --stat
+ login.txt | 1 +
+ 1 file changed, 1 insertion(+)</code></pre>
+  <div class="log-annotation">
+    <strong>Cosa osservare:</strong> <code>diff-nuovo.txt</code> <strong>non compare</strong> da nessuna parte. Un file nuovo non ancora aggiunto con <code>git add</code> (untracked) è invisibile a <code>git diff</code>, con qualsiasi opzione: lo vedi solo con <code>git status</code>. Se su Windows ti compare un avviso <code>LF will be replaced by CRLF</code> è solo un messaggio sui fine riga, non un errore.
+  </div>
+
+  <h3>Parte 2 — Con la staging area</h3>
+  <pre><code>git add .
+git diff
+git diff --staged
+git diff --staged --name-status
+git diff --staged --stat</code></pre>
+
+  <h3>Output atteso</h3>
+  <pre><code>$ git diff
+(nessun output)
+
+$ git diff --staged --name-status
+A       diff-nuovo.txt
+M       login.txt
+
+$ git diff --staged --stat
+ diff-nuovo.txt | 1 +
+ login.txt      | 1 +
+ 2 files changed, 2 insertions(+)</code></pre>
+  <div class="log-annotation">
+    <strong>Cosa osservare:</strong> dopo <code>git add .</code> il semplice <code>git diff</code> è <strong>vuoto</strong>, perché non c'è più nulla "non in staging": le stesse modifiche sono passate sotto <code>--staged</code>. Ora <code>diff-nuovo.txt</code> compare, con la lettera <code>A</code> (aggiunto): è la prima volta che Git lo considera parte del confronto. <code>login.txt</code> resta <code>M</code> (modificato).
+  </div>
+
+  <h3>Parte 3 — Pulizia</h3>
+  <pre><code>git restore --staged .
+git restore login.txt
+Remove-Item diff-nuovo.txt
+git status</code></pre>
+  <p>Deve rispondere <code>nothing to commit, working tree clean</code>. Il primo comando toglie tutto dalla staging, il secondo butta la riga aggiunta a <code>login.txt</code> (irreversibile, ma qui è proprio quello che vuoi) e il terzo cancella il file nuovo (<code>Remove-Item</code> è il comando PowerShell; su Git Bash o Linux è <code>rm</code>).</p>
+
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">git diff</td><td class="desc">modifiche ai file già tracciati che <strong>non</strong> sono ancora in staging</td></tr>
+      <tr><td class="part">git diff --staged</td><td class="desc">modifiche già in staging, cioè quelle che finirebbero nel prossimo commit</td></tr>
+      <tr><td class="part">--name-only</td><td class="desc">solo i percorsi dei file cambiati</td></tr>
+      <tr><td class="part">--name-status</td><td class="desc">percorsi + lettera di stato: <code>M</code> modificato, <code>A</code> aggiunto, <code>D</code> cancellato, <code>R</code> rinominato</td></tr>
+      <tr><td class="part">--stat</td><td class="desc">elenco dei file con righe aggiunte/rimosse e riepilogo finale</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-info">
+    <div class="callout-label">E per confrontare due branch?</div>
+    <p>Le stesse opzioni funzionano anche tra commit e branch, e lì il significato delle lettere dipende da <strong>cosa confronti e in che ordine</strong>. Lo provi nella Fase 3, al punto 3.4, con <code>git diff HEAD...origin/dev --name-status</code>.</p>
+  </div>
+
   <div class="callout callout-warn">
     <div class="callout-label">Prima di passare alla Fase 2 — pusha!</div>
     <p>Allinea il remoto con quello che hai fatto in locale:</p>
@@ -898,9 +974,44 @@ git rebase --continue</code></pre>
     </tbody>
   </table>
 
+  <h3>Nel lavoro vero: lo lanci dal feature branch, con la forma esplicita</h3>
+  <p>Nell'esercizio sopra sei su <code>dev</code> perché è il modo più semplice per simulare "commit locale + remoto avanzato". Nel lavoro di ogni giorno, però, il rebase serve soprattutto per aggiornare il <strong>tuo feature branch</strong> con gli ultimi commit di <code>dev</code> (→ Modulo 5 §5.9 e Modulo 6 §6.6). Lo lanci dal feature branch e dici a Git da dove prendere i commit:</p>
+
+  <pre><code>git switch feature/navbar
+git pull --rebase origin dev    # forma esplicita: porta dentro i commit di dev
+
+# equivale a:
+git fetch
+git rebase origin/dev</code></pre>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Non eseguirlo adesso</div>
+    <p>Questo blocco è solo il riferimento per il lavoro vero: se lo lanci ora riscrivi la storia di <code>feature/navbar</code> e i log delle fasi successive non coincideranno più con quelli mostrati. Quando il feature branch era già stato pushato, dopo il rebase il push normale viene rifiutato (gli hash sono cambiati) e serve <code>git push --force-with-lease</code> (→ Fase 4.3).</p>
+  </div>
+
+  <p><strong>La forma breve non fa la stessa cosa.</strong> <code>git pull --rebase</code> senza argomenti rebasa sul <em>tracking branch</em> del branch su cui sei, che su un feature branch <strong>non è <code>dev</code></strong>. Puoi verificarlo senza cambiare niente (comandi di sola lettura, quindi sicuri):</p>
+
+  <pre><code>git switch feature/navbar
+git branch -vv
+git rev-parse --abbrev-ref --symbolic-full-name '@{u}'</code></pre>
+
+  <div class="callout callout-info">
+    <div class="callout-label">PowerShell: gli apici servono</div>
+    <p>In PowerShell <code>@{u}</code> senza apici viene letto come un oggetto del linguaggio e il comando fallisce. Scrivilo tra apici singoli, come sopra.</p>
+  </div>
+
+  <table class="anatomy">
+    <thead><tr><th>Cosa risponde l'ultimo comando</th><th>Cosa significa per <code>git pull --rebase</code> (forma breve)</th></tr></thead>
+    <tbody>
+      <tr><td class="part"><code>origin/feature/navbar</code> (hai pushato con <code>-u</code>)</td><td class="desc">rebasa sulla tua copia remota del feature branch, <strong>non</strong> sui commit di <code>dev</code>: Git ti dirà che è già tutto aggiornato e non avrai integrato niente</td></tr>
+      <tr><td class="part"><code>fatal: no upstream configured for branch 'feature/navbar'</code> (hai pushato senza <code>-u</code>, come nel 3.1)</td><td class="desc">la forma breve dà errore: <code>There is no tracking information for the current branch</code></td></tr>
+    </tbody>
+  </table>
+  <p>In entrambi i casi, per portare dentro i commit di <code>dev</code> serve la forma esplicita <code>git pull --rebase origin dev</code> (o <code>git fetch</code> + <code>git rebase origin/dev</code>).</p>
+
   <div class="callout callout-tip">
     <div class="callout-label">Regola pratica per il tuo team</div>
-    <p>Nel vostro workflow con cherry-pick verso <code>integration</code>, la history lineare è una priorità — <code>git pull --rebase</code> dovrebbe essere la scelta di default quando aggiorni un feature branch o <code>dev</code>. Usa il pull normale solo quando devi tracciare esplicitamente un'integrazione o quando il branch è già condiviso e altri ci hanno già lavorato sopra.</p>
+    <p>Nel vostro workflow con cherry-pick verso <code>integration</code>, la history lineare è una priorità — <code>git pull --rebase</code> dovrebbe essere la scelta di default quando aggiorni <code>dev</code>. Per aggiornare un <strong>feature branch</strong> con <code>dev</code> usa la forma esplicita <code>git pull --rebase origin dev</code> (o <code>git fetch</code> + <code>git rebase origin/dev</code>). Usa il pull normale solo quando devi tracciare esplicitamente un'integrazione o quando il branch è già condiviso e altri ci hanno già lavorato sopra.</p>
   </div>
 
   <hr class="divider" id="f3-divcheck">
@@ -917,7 +1028,10 @@ git rev-list --left-right --count origin/dev...HEAD
 git log HEAD..origin/dev --oneline
 
 <span class="cm"># 4. Quali file cambiano in quei commit (senza il contenuto)</span>
-git diff HEAD...origin/dev --stat</code></pre>
+git diff HEAD...origin/dev --stat
+
+<span class="cm"># 5. Come il passo 4, ma con la lettera di stato di ogni file</span>
+git diff HEAD...origin/dev --name-status</code></pre>
 
   <h3>Output atteso su questo scenario</h3>
   <div class="git-log">$ git rev-list --left-right --count origin/dev...HEAD
@@ -939,8 +1053,17 @@ git diff HEAD...origin/dev --stat</code></pre>
       <tr><td class="part">origin/dev...HEAD (tre puntini)</td><td class="desc">confronta entrambi i lati rispetto alla merge base comune — serve per contare "chi ha cosa"</td></tr>
       <tr><td class="part">HEAD..origin/dev (due puntini)</td><td class="desc">elenca solo i commit raggiungibili da <code>origin/dev</code> ma non da <code>HEAD</code> — serve per "cosa mi manca"</td></tr>
       <tr><td class="part">git diff HEAD...origin/dev --stat</td><td class="desc">diff rispetto alla merge base, con <code>--stat</code> mostra solo l'elenco file e righe cambiate, senza contenuto — utile per farsi un'idea veloce di quanto è "largo" l'aggiornamento. Il file esatto dipende da cosa hai modificato tu: prova sul tuo repo e guarda il risultato</td></tr>
+      <tr><td class="part">git diff HEAD...origin/dev --name-status</td><td class="desc">come <code>--stat</code>, ma per ogni file mostra una lettera: <code>M</code> modificato, <code>A</code> aggiunto, <code>D</code> cancellato. Con <code>HEAD...origin/dev</code> la lettura è dal punto di vista di <code>dev</code>: <code>M</code> = file modificato su <code>dev</code> rispetto alla merge base</td></tr>
     </tbody>
   </table>
+
+  <h3>Provalo anche dal lato opposto</h3>
+  <p>Con i tre puntini l'ordine dei termini cambia <em>di chi</em> è il punto di vista. Lancia entrambi e confronta:</p>
+  <pre><code>git diff HEAD...origin/dev --name-status    <span class="cm"># cosa è cambiato su dev dalla merge base</span>
+git diff origin/dev...HEAD --name-status    <span class="cm"># cosa è cambiato sul TUO branch dalla merge base</span></code></pre>
+  <div class="log-annotation">
+    Il primo elenco contiene i file toccati dal commit del collega (nel nostro scenario <code>login.txt</code>, con <code>M</code> se l'ha solo modificato). Il secondo contiene i file toccati dal tuo commit locale: per esempio, se il tuo commit ha creato <code>pullrebase.txt</code>, lo vedi con <code>A</code>. Non è un semplice "ribaltamento" del primo: sono due insiemi di file diversi, perché ciascun lato è confrontato con la <strong>merge base</strong> e non con l'altro lato.
+  </div>
 
   <div class="callout callout-tip">
     <div class="callout-label">Perché non fare direttamente pull</div>
@@ -1011,6 +1134,16 @@ git log --oneline --graph --all</code></pre>
     <code>* b3aa22e (dev)</code> — il commit "nel frattempo" su dev. <strong>Invariato</strong> — stesso hash di prima. Il rebase non tocca dev.<br><br>
     <code>*&nbsp;&nbsp; 9697c2c (origin/dev)</code> — l'antenato comune. Invariato.<br><br>
     La <strong>linea dritta</strong> è la prova del rebase riuscito: non c'è più la biforcazione <code>| *</code>/<code>|/</code>. I commit sembrano essere stati fatti direttamente su dev, in sequenza. Ma attenzione: gli hash vecchi (<code>bcf2c4e</code>, <code>8fbaef0</code>) esistono ancora nel reflog per 90 giorni.
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Nel lavoro vero: rebase sul remoto, non su dev locale</div>
+    <p>In questo esercizio rebasi su <code>dev</code> locale perché è già lì, ma nel lavoro di ogni giorno vuoi la versione aggiornata del remoto. La sequenza reale è quella del Modulo 5 §5.9:</p>
+    <pre style="margin-top:8px;"><code>git switch feature/rebase-test
+git fetch
+git rebase origin/dev
+git push --force-with-lease    <span class="cm"># serve solo se il branch era già stato pushato</span></code></pre>
+    <p>Il rebase riscrive gli hash dei tuoi commit (lo hai appena visto nel log: <code>bcf2c4e</code> → <code>1721453</code>), quindi un branch già sul remoto rifiuta il push normale. È esattamente il caso del punto 4.3. Non eseguire questo blocco adesso: lo provi, in condizioni controllate, nei prossimi esempi.</p>
   </div>
 
   <hr class="divider" id="f4-interactive">
@@ -1515,8 +1648,8 @@ git add . && git commit -m "feat: commit C - file gamma"
 git log --oneline   # prendi nota degli hash</code></pre>
 
   <h3>Log del feature branch</h3>
-  <div class="git-log"><span class="g">* </span><span class="h">58cea56</span> <span class="rf">(HEAD -&gt; feature/cherry-test)</span> feat: commit A - file gamma
-<span class="g">* </span><span class="h">08a286e</span> feat: commit A - file beta
+  <div class="git-log"><span class="g">* </span><span class="h">58cea56</span> <span class="rf">(HEAD -&gt; feature/cherry-test)</span> feat: commit C - file gamma
+<span class="g">* </span><span class="h">08a286e</span> feat: commit B - file beta
 <span class="g">* </span><span class="h">cb59bf6</span> feat: commit A - file alpha
 <span class="g">* </span><span class="h">df53ee5</span> <span class="ro">(origin/dev, dev)</span> spostato dashboard di cartella</div>
 
@@ -1525,7 +1658,7 @@ git cherry-pick 08a286e   # l'hash del commit B
 git log --oneline</code></pre>
 
   <h3>Log di dev dopo il cherry-pick</h3>
-  <div class="git-log"><span class="g">* </span><span class="h">6488e18</span> <span class="r">(HEAD -&gt; dev)</span> feat: commit A - file beta
+  <div class="git-log"><span class="g">* </span><span class="h">6488e18</span> <span class="r">(HEAD -&gt; dev)</span> feat: commit B - file beta
 <span class="g">* </span><span class="h">df53ee5</span> <span class="ro">(origin/dev)</span> spostato dashboard di cartella
 <span class="g">*   </span><span class="h">9697c2c</span> <span class="m">Merged PR 2: feat: aggiunta navbar</span></div>
   <div class="log-annotation">
@@ -1729,6 +1862,10 @@ git push origin --delete feature/login-dev</code></pre>
       <tr><td class="part">git fetch origin dev</td><td class="desc">Scarica lo stato del remoto senza mergare</td></tr>
       <tr><td class="part">git rev-list --left-right --count A...B</td><td class="desc">Conta i commit divergenti nei due sensi (ahead/behind)</td></tr>
       <tr><td class="part">git diff A...B --stat</td><td class="desc">File cambiati tra A e B rispetto alla merge base, senza contenuto</td></tr>
+      <tr><td class="part">git diff A...B --name-status</td><td class="desc">Come --stat, ma con la lettera di stato per file (M modificato, A aggiunto, D cancellato, R rinominato) dal punto di vista di B</td></tr>
+      <tr><td class="part">git diff</td><td class="desc">Modifiche non in staging (i file untracked non compaiono)</td></tr>
+      <tr><td class="part">git diff --staged</td><td class="desc">Modifiche in staging, cioè quelle del prossimo commit</td></tr>
+      <tr><td class="part">git pull --rebase origin dev</td><td class="desc">Dal feature branch: riapplica i tuoi commit sopra quelli di dev (forma esplicita)</td></tr>
       <tr><td class="part">git pull origin &lt;branch&gt;</td><td class="desc">fetch + merge — allinea il locale al remoto</td></tr>
       <tr><td class="part">git status</td><td class="desc">Stato attuale: branch, staging, divergenze</td></tr>
     </tbody>
@@ -1736,7 +1873,7 @@ git push origin --delete feature/login-dev</code></pre>
 
   <div class="callout callout-info">
     <div class="callout-label">Tutto coperto!</div>
-    <p>Tutti gli argomenti avanzati sono ora inclusi nella pratica: <strong>git pull --rebase</strong> (Fase 3.3), <strong>controllo divergenza senza cambiare branch</strong> (Fase 3.4), <strong>rinomina branch</strong> (Fase 1.4), <strong>git restore --source</strong> (Fase 5.5), <strong>disaster recovery completo col reflog</strong> (Fase 5.6), <strong>i 3 scenari di --force-with-lease</strong> (Fase 4.4).</p>
+    <p>Tutti gli argomenti avanzati sono ora inclusi nella pratica: <strong>git pull --rebase</strong> (Fase 3.3), <strong>controllo divergenza senza cambiare branch</strong> (Fase 3.4), <strong>rinomina branch</strong> (Fase 1.4), <strong>git diff e le sue opzioni</strong> (Fase 1.5), <strong>pull --rebase dal feature branch</strong> (Fase 3.3), <strong>git restore --source</strong> (Fase 5.5), <strong>disaster recovery completo col reflog</strong> (Fase 5.6), <strong>i 3 scenari di --force-with-lease</strong> (Fase 4.4).</p>
   </div>
 
   <div class="nav-row">
