@@ -4687,7 +4687,7 @@ c44d210 HEAD@{3}  checkout: moving from main to feature/pagamenti</code></pre>
 
   <p>Il comando base è semplice: ti posizioni sul branch di destinazione e cherry-picki lo SHA del commit che vuoi copiare.</p>
 
-  <pre><code><span class="cm"># Scenario: sei su main, vuoi portare un fix da feature/login</span>
+  <pre><code><span class="cm"># Scenario: vuoi portare su main un fix che sta su feature/login</span>
 
 <span class="cm"># 1. Prima di tutto, trova lo SHA del commit che ti interessa</span>
 <span class="kw">git log</span> feature/login --oneline
@@ -4696,8 +4696,8 @@ c44d210 HEAD@{3}  checkout: moving from main to feature/pagamenti</code></pre>
 # b72d441 feat: aggiunta validazione email
 # ...</span>
 
-<span class="cm"># 2. Posizionati sul branch di destinazione</span>
-<span class="kw">git checkout</span> main
+<span class="cm"># 2. Posizionati sul branch di destinazione (da qui in poi sei su main)</span>
+<span class="kw">git switch</span> main
 
 <span class="cm"># 3. Cherry-pick</span>
 <span class="kw">git cherry-pick</span> a3f9c12
@@ -4705,7 +4705,15 @@ c44d210 HEAD@{3}  checkout: moving from main to feature/pagamenti</code></pre>
 <span class="cm"># Git crea un nuovo commit su main con lo stesso diff e messaggio
 # Output:
 # [main e1b7f33] fix: corretto calcolo sconto su ordini multipli
-#  1 file changed, 3 insertions(+), 1 deletion(-)</span></code></pre>
+#  1 file changed, 3 insertions(+), 1 deletion(-)</span>
+
+<span class="cm"># 4. Manda il commit sul remote: il cherry-pick è solo locale finché non pushi</span>
+<span class="kw">git push</span></code></pre>
+
+  <div class="callout callout-tip">
+    <div class="callout-label">💡 Niente git commit dopo il cherry-pick</div>
+    <p>Il cherry-pick crea già il commit da solo: dopo basta il <code>git push</code>. Un <code>git commit</code> a mano serve solo con <code>-n</code> (→ <a href="#" class="xref" onclick="showAndScroll(8,'sec-cherry-pick-range-mod9');return false;">§9.3</a>). Dopo un conflitto invece non si fa <code>git commit</code>: si risolve, si fa <code>git add</code> e si chiude con <code>git cherry-pick --continue</code> (→ <a href="#" class="xref" onclick="showAndScroll(8,'sec-cherry-pick-conflicts-mod9');return false;">§9.4</a>). Se il branch di destinazione ha una policy su Azure DevOps che blocca i push diretti, il push viene rifiutato e il commit deve arrivare tramite Pull Request.</p>
+  </div>
 
   <table class="anatomy">
     <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
