@@ -1877,7 +1877,7 @@ git push origin release/1.0</code></pre>
   </div>
 
   <div class="callout callout-info">
-    <div class="callout-label">Cosa simula <code>-s ours</code></div>
+    <div class="callout-label">Cosa simula <code style="text-transform:none">-s ours</code></div>
     <p>La strategia <code>ours</code> registra il merge nella storia ma <strong>scarta tutto il contenuto</strong> del branch mergiato. È l'equivalente, in un solo comando, di un collega che risolve i conflitti scegliendo sempre la propria versione. Da qui in poi per Git <code>feature/report</code> risulta "già integrato", anche se i suoi file non ci sono.</p>
   </div>
 
@@ -2048,7 +2048,7 @@ git log --oneline --first-parent origin/release/1.0..HEAD</code></pre>
 git branch -D backup-prima-integrazione   # quando sei sicuro</code></pre>
 
   <div class="callout callout-warn">
-    <div class="callout-label">Niente <code>git add .</code> durante un recupero</div>
+    <div class="callout-label">Niente <code style="text-transform:none">git add .</code> durante un recupero</div>
     <p>Aggiungi i file per nome. <code>git add .</code> mette in stage anche file non tracciati che non c'entrano (export, appunti, cartelle dell'IDE) e li porta su con il push.</p>
   </div>
 
