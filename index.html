@@ -1298,6 +1298,44 @@ git diff --staged</code></pre>
     </tbody>
   </table>
 
+  <h3>Solo l'elenco dei file, senza il contenuto</h3>
+  <p>Quando le modifiche sono tante, leggerle riga per riga non serve: ti basta sapere <em>quali file</em> sono cambiati. Tre opzioni, dalla più sintetica alla più informativa:</p>
+
+  <pre><code><span class="cm"># Solo i nomi dei file modificati</span>
+git diff --name-only
+
+<span class="cm"># Nomi dei file + una lettera che dice cosa è successo a ciascuno</span>
+git diff --name-status
+
+<span class="cm"># Nomi dei file + quante righe sono cambiate (con un piccolo istogramma)</span>
+git diff --stat
+
+<span class="cm"># Le stesse opzioni valgono per le modifiche in staging</span>
+git diff --staged --name-status</code></pre>
+
+  <p>Esempio di output di <code>git diff --staged --name-status</code> (file già in staging):</p>
+
+  <pre><code>M       src/main/java/Main.java
+A       src/main/java/Validator.java
+D       old/Legacy.java
+R087    Utils.java    UtilsHelper.java</code></pre>
+
+  <table class="anatomy">
+    <thead><tr><th>Parte</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td class="part">--name-only</td><td class="desc">stampa solo i percorsi dei file cambiati, uno per riga — comodo da passare ad altri comandi (es. negli hook, → Modulo 9)</td></tr>
+      <tr><td class="part">--name-status</td><td class="desc">come <code>--name-only</code>, ma con una lettera davanti a ogni file: <code>M</code> modificato, <code>A</code> aggiunto, <code>D</code> cancellato, <code>R</code> rinominato (seguito da una percentuale di somiglianza, es. <code>R087</code>)</td></tr>
+      <tr><td class="part">--stat</td><td class="desc">elenco dei file con il numero di righe aggiunte/rimosse e un riepilogo finale — utile per farsi un'idea di quanto è "largo" un cambiamento</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-warn">
+    <div class="callout-label">Attenzione ai file nuovi</div>
+    <p>Un file <strong>nuovo e non ancora aggiunto</strong> con <code>git add</code> (untracked) non compare in <code>git diff</code>, con nessuna di queste opzioni. La lettera <code>A</code> la vedi solo dopo <code>git add</code> (con <code>--staged</code>) oppure quando confronti due commit o due branch. Per i file untracked usa <code>git status</code>.</p>
+  </div>
+
+  <p>Queste opzioni diventano particolarmente utili quando confronti due branch o un branch col remote, per esempio prima di una PR o di un cherry-pick: <code>git diff --name-status HEAD...origin/dev</code> ti dice subito cosa è cambiato su <code>dev</code> dalla tua merge base (→ <a href="#" class="xref" onclick="showAndScroll(3,'sec-azure-pr-mod4');return false;">§4.6</a> e <a href="#" class="xref" onclick="showAndScroll(4,'sec-merge-base-manuale-mod5');return false;">§5.3</a> per la sintassi coi tre puntini).</p>
+
   <div class="callout callout-tip">
     <div class="callout-label">Flusso consigliato</div>
     <p>Prima di ogni commit: <code>git status</code> per vedere quali file sono coinvolti, poi <code>git diff</code> per leggere le modifiche riga per riga. Ti evita di committare roba che non volevi includere.</p>
@@ -1348,6 +1386,9 @@ git restore Main.java</code></pre>
       <tr><td class="part">git diff</td><td class="desc">mostra tutte le modifiche non staged riga per riga</td></tr>
       <tr><td class="part">git diff Main.java</td><td class="desc">mostra le modifiche di un file specifico</td></tr>
       <tr><td class="part">git diff --staged</td><td class="desc">mostra le modifiche già in staging</td></tr>
+      <tr><td class="part">git diff --name-only</td><td class="desc">solo i nomi dei file modificati</td></tr>
+      <tr><td class="part">git diff --name-status</td><td class="desc">nomi dei file con lettera di stato (M modificato, A aggiunto, D cancellato, R rinominato)</td></tr>
+      <tr><td class="part">git diff --stat</td><td class="desc">file cambiati con conteggio righe aggiunte/rimosse</td></tr>
       <tr><td class="part">git restore Main.java</td><td class="desc">scarta modifiche non staged (irreversibile)</td></tr>
       <tr><td class="part">git restore --staged Main.java</td><td class="desc">rimuove il file dalla staging area</td></tr>
       <tr><td class="part">git merge feature/x</td><td class="desc">integra feature/x nel branch corrente</td></tr>
