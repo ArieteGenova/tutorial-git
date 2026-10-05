@@ -2670,13 +2670,13 @@ git commit -m "feat: implementa sistema di login"</code></pre>
 
   <pre><code>git switch feature/login   <span class="cm"># assicurati di essere sul tuo branch</span>
 git fetch                  <span class="cm"># scarica gli aggiornamenti dal remote</span>
-git merge origin/dev       <span class="cm"># porta i commit di dev nel tuo branch</span></code></pre>
+git rebase origin/dev      <span class="cm"># rimette i tuoi commit sopra quelli di dev</span></code></pre>
 
-  <p>Nota: <code>git fetch</code> + <code>git merge origin/dev</code> è equivalente a <code>git pull origin dev</code> — la forma estesa è preferibile in un contesto didattico perché rende espliciti i due passi separati.</p>
+  <p>Nota: <code>git fetch</code> + <code>git rebase origin/dev</code> è equivalente a <code>git pull --rebase origin dev</code> (→ <a href="#" class="xref" onclick="showAndScroll(5,'sec-pull-rebase-mod6');return false;">Modulo 6 §6.6</a>) — la forma estesa è preferibile in un contesto didattico perché rende espliciti i due passi separati.</p>
 
-  <p>Tieni però presente una conseguenza: quando mergi <code>origin/dev</code> nel tuo branch, i commit dei colleghi entrano nella storia del tuo branch. Non è un problema per il merge finale — quei commit esistono già su <code>dev</code>, non stai introducendo niente di nuovo. Ma se in futuro volessi fare <strong>cherry-pick</strong> dei tuoi commit, dovresti andare a identificarli uno per uno in mezzo a quelli altrui — il log diventa un grafo ingarbugliato e l'operazione si complica.</p>
+  <p><strong>Perché rebase e non merge.</strong> Con <code>git merge origin/dev</code> i commit dei colleghi entrano nella storia del tuo branch. Non è un problema per il merge finale — quei commit esistono già su <code>dev</code>, non stai introducendo niente di nuovo. Ma se in futuro volessi fare <strong>cherry-pick</strong> dei tuoi commit, dovresti andare a identificarli uno per uno in mezzo a quelli altrui — il log diventa un grafo ingarbugliato e l'operazione si complica. Con <code>git rebase origin/dev</code> i tuoi commit vengono riscritti sopra quelli del collega: la storia rimane una linea pulita e il cherry-pick futuro è banale. È esattamente per questo che esiste il <a href="#" class="xref" onclick="showAndScroll(5,'sec-problema-rebase');return false;">Modulo 6</a>.</p>
 
-  <p>Se vuoi che il tuo branch contenga <strong>solo i tuoi commit</strong> nella storia, la risposta è <code>git rebase origin/dev</code> invece di <code>git merge origin/dev</code>: i tuoi commit vengono riscritti sopra quelli del collega, la storia rimane una linea pulita e il cherry-pick futuro è banale. È esattamente per questo che esiste il <a href="#" class="xref" onclick="showAndScroll(5,'sec-problema-rebase');return false;">Modulo 6</a>.</p>
+  <p><strong>Attenzione al push.</strong> Dopo un rebase gli hash dei tuoi commit cambiano: se il branch era già stato pushato, il prossimo push richiede <code>git push --force-with-lease</code> (→ <a href="#" class="xref" onclick="showAndScroll(5,'sec-rebase-base-mod6');return false;">Modulo 6 §6.3</a>). E se il branch è condiviso con altri colleghi il rebase non va bene: si torna al merge (→ <a href="#" class="xref" onclick="showAndScroll(5,'sec-regola-oro-mod6');return false;">Modulo 6 §6.7</a>).</p>
 
   <div class="callout callout-warn">
     <div class="callout-label">Se il cherry-pick è una priorità — usa sempre il rebase</div>
